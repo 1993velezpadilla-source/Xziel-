@@ -1,0 +1,2770 @@
+{
+  "schemaVersion": 1,
+  "catalogId": "bo3_pack_a_punch_catalog_v1",
+  "mapScope": "Nacht der Untoten / BO3 Zombies Chronicles prototype weapon table",
+  "sourceAuthority": {
+    "prototypeSnapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+    "weaponRuntime": {
+      "repository": "ate47/bo3-source",
+      "path": "scripts/zm/_zm_weapons.gsc",
+      "blobSha": "d336d2544b307ccf5de63fc5c29546a56a607506"
+    },
+    "statstable": {
+      "repository": "ate47/bo3-source",
+      "path": "gamedata/stats/zm/zm_statstable.csv",
+      "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef"
+    },
+    "attachmentMapping": {
+      "repository": "ate47/bo3-source",
+      "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+      "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa"
+    }
+  },
+  "runtimeSemantics": {
+    "identityMapping": "load_weapon_spec_from_table() registers base weapon and upgrade_name; add_zombie_weapon() stores level.zombie_weapons[base].upgrade; get_upgrade_weapon() returns that upgrade identity.",
+    "attachments": "Attachment selection is independent of upgrade identity. Current source dump exposes exact attachmentmappingstable rows for a subset only.",
+    "repeatedPackAPunch": "can_upgrade_weapon() may allow an already-upgraded weapon only when attachment swapping is enabled and the weapon supports attachments.",
+    "aat": "weapon_supports_aat() requires an upgraded weapon and rejects AAT-exempt weapons.",
+    "safetyRule": "Do not synthesize upgraded ballistic damage/ammo from base weapon values. Keep gameplay stats pending until source-backed values are recovered."
+  },
+  "counts": {
+    "upgradeIdentities": 36,
+    "statstableRows": 30,
+    "attachmentMappingRows": 26,
+    "specialEvidenceVariants": 6,
+    "ballisticUpgradeStatsReady": 0,
+    "nativeRuntimeReady": 0
+  },
+  "variants": [
+    {
+      "baseWeaponId": "pistol_standard",
+      "upgradeWeaponId": "pistol_standard_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "FALSE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "TRUE",
+        "limit": "0",
+        "upgradeLimit": "",
+        "isAatExempt": "TRUE",
+        "weaponClass": "pistol",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "101",
+          "",
+          "weapon_pistol",
+          "WEAPON_PISTOL_STANDARD",
+          "pistol_standard_upgraded",
+          "",
+          "t7_icon_weapon_pistol_standard",
+          "WEAPON_PISTOL_STANDARD_DESC",
+          "reflex reddot quickdraw steadyaim extbarrel fastreload extclip fmj",
+          "101",
+          "100",
+          "",
+          "-1",
+          "secondary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": false,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": null,
+        "attachmentTokens": []
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "pistol_m1911",
+      "upgradeWeaponId": "pistol_m1911_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "FALSE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "TRUE",
+        "limit": "0",
+        "upgradeLimit": "",
+        "isAatExempt": "TRUE",
+        "weaponClass": "pistol",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "148",
+          "",
+          "weapon_pistol",
+          "WEAPON_PISTOL_M1911",
+          "pistol_m1911_upgraded",
+          "",
+          "t7_icon_weapon_pistol_m1911",
+          "WEAPON_PISTOL_M1911_DESC",
+          "reflex reddot quickdraw suppressed steadyaim damage fmj fastreload extclip extbarrel dw gmod6 gmod7",
+          "6",
+          "0",
+          "",
+          "-1",
+          "primary",
+          "",
+          "",
+          "",
+          "",
+          "9",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": false,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": null,
+        "attachmentTokens": []
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "cymbal_monkey",
+      "upgradeWeaponId": "cymbal_monkey_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "grenade",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": false,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": null
+      },
+      "attachmentMapping": {
+        "present": false,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": null,
+        "attachmentTokens": []
+      },
+      "specialEvidence": [
+        {
+          "path": "scripts/zm/_zm_weap_cymbal_monkey.gsc",
+          "role": "special_upgrade_behavior_identity"
+        },
+        {
+          "path": "scripts/zm/zm_prototype.gsc",
+          "role": "prototype_registration"
+        }
+      ],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "ray_gun",
+      "upgradeWeaponId": "ray_gun_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "TRUE",
+        "weaponClass": "special",
+        "isWonderWeapon": "TRUE",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": false,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": null
+      },
+      "attachmentMapping": {
+        "present": false,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": null,
+        "attachmentTokens": []
+      },
+      "specialEvidence": [
+        {
+          "path": "gamedata/weapons/zm/zm_weapons.csv",
+          "role": "zombies_upgrade_identity"
+        },
+        {
+          "path": "scripts/zm/_zm.gsc",
+          "role": "zombies_runtime_identity_usage"
+        }
+      ],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "thundergun",
+      "upgradeWeaponId": "thundergun_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "TRUE",
+        "limit": "1",
+        "upgradeLimit": "",
+        "isAatExempt": "TRUE",
+        "weaponClass": "special",
+        "isWonderWeapon": "TRUE",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": false,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": null
+      },
+      "attachmentMapping": {
+        "present": false,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": null,
+        "attachmentTokens": []
+      },
+      "specialEvidence": [
+        {
+          "path": "scripts/zm/_zm_weap_thundergun.gsc",
+          "role": "wonder_weapon_upgrade_identity_and_behavior"
+        }
+      ],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "ar_accurate",
+      "upgradeWeaponId": "ar_accurate_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "rifle",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "121",
+          "",
+          "weapon_assault",
+          "WEAPON_AR_ACCURATE",
+          "ar_accurate_upgraded",
+          "",
+          "t7_icon_weapon_ar_standard",
+          "WEAPON_AR_ACCURATE_DESC",
+          "reflex ir dualoptic reddot holo acog quickdraw stalker steadyaim rf grip extbarrel fastreload extclip fmj",
+          "121",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "ar_accurate_upgraded",
+          "acog damage dualoptic_upgraded extbarrel_ar_power_upgraded extclip fastreload_dualmag fmj grip holo ir quickdraw reflex reddot rf_upgraded stalker steadyaim suppressed_ar"
+        ],
+        "attachmentTokens": [
+          "acog",
+          "damage",
+          "dualoptic_upgraded",
+          "extbarrel_ar_power_upgraded",
+          "extclip",
+          "fastreload_dualmag",
+          "fmj",
+          "grip",
+          "holo",
+          "ir",
+          "quickdraw",
+          "reflex",
+          "reddot",
+          "rf_upgraded",
+          "stalker",
+          "steadyaim",
+          "suppressed_ar"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "ar_cqb",
+      "upgradeWeaponId": "ar_cqb_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "rifle",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "122",
+          "",
+          "weapon_assault",
+          "WEAPON_AR_CQB",
+          "ar_cqb_upgraded",
+          "",
+          "t7_icon_weapon_ar_standard",
+          "WEAPON_AR_CQB_DESC",
+          "reflex ir dualoptic reddot holo acog quickdraw stalker steadyaim rf grip extbarrel fastreload extclip fmj",
+          "122",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "ar_cqb_upgraded",
+          "acog damage dualoptic_upgraded extbarrel_ar_power_upgraded extclip fastreload_dualmag fmj grip holo ir quickdraw reflex reddot rf_upgraded stalker steadyaim suppressed_ar"
+        ],
+        "attachmentTokens": [
+          "acog",
+          "damage",
+          "dualoptic_upgraded",
+          "extbarrel_ar_power_upgraded",
+          "extclip",
+          "fastreload_dualmag",
+          "fmj",
+          "grip",
+          "holo",
+          "ir",
+          "quickdraw",
+          "reflex",
+          "reddot",
+          "rf_upgraded",
+          "stalker",
+          "steadyaim",
+          "suppressed_ar"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "ar_damage",
+      "upgradeWeaponId": "ar_damage_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "rifle",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "123",
+          "",
+          "weapon_assault",
+          "WEAPON_AR_DAMAGE",
+          "ar_damage_upgraded",
+          "",
+          "t7_icon_weapon_ar_damage",
+          "WEAPON_AR_DAMAGE_DESC",
+          "reflex ir dualoptic reddot holo acog quickdraw stalker steadyaim rf grip extbarrel fastreload extclip fmj",
+          "123",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "ar_damage_upgraded",
+          "acog damage dualoptic_upgraded extbarrel_ar_power_upgraded extclip fastreload_dualmag fmj grip holo ir quickdraw reflex reddot rf_upgraded stalker steadyaim suppressed_ar"
+        ],
+        "attachmentTokens": [
+          "acog",
+          "damage",
+          "dualoptic_upgraded",
+          "extbarrel_ar_power_upgraded",
+          "extclip",
+          "fastreload_dualmag",
+          "fmj",
+          "grip",
+          "holo",
+          "ir",
+          "quickdraw",
+          "reflex",
+          "reddot",
+          "rf_upgraded",
+          "stalker",
+          "steadyaim",
+          "suppressed_ar"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "ar_longburst",
+      "upgradeWeaponId": "ar_longburst_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "rifle",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "125",
+          "",
+          "weapon_assault",
+          "WEAPON_AR_LONGBURST",
+          "ar_longburst_upgraded",
+          "",
+          "t7_icon_weapon_ar_longburst",
+          "WEAPON_AR_LONGBURST_DESC",
+          "reflex ir dualoptic reddot holo acog quickdraw stalker steadyaim rf grip extbarrel fastreload extclip fmj",
+          "125",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "ar_longburst_upgraded",
+          "acog damage dualoptic_upgraded extbarrel_ar_power_upgraded extclip fastreload_dualmag fmj grip holo ir quickdraw reflex reddot rf_arlongburst_upgraded stalker steadyaim suppressed_ar"
+        ],
+        "attachmentTokens": [
+          "acog",
+          "damage",
+          "dualoptic_upgraded",
+          "extbarrel_ar_power_upgraded",
+          "extclip",
+          "fastreload_dualmag",
+          "fmj",
+          "grip",
+          "holo",
+          "ir",
+          "quickdraw",
+          "reflex",
+          "reddot",
+          "rf_arlongburst_upgraded",
+          "stalker",
+          "steadyaim",
+          "suppressed_ar"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "ar_marksman",
+      "upgradeWeaponId": "ar_marksman_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "rifle",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "126",
+          "",
+          "weapon_assault",
+          "WEAPON_AR_MARKSMAN",
+          "ar_marksman_upgraded",
+          "",
+          "t7_icon_weapon_ar_marksman",
+          "WEAPON_AR_MARKSMAN_DESC",
+          "reflex ir dualoptic reddot holo acog quickdraw stalker steadyaim rf grip extbarrel fastreload extclip fmj",
+          "126",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "ar_marksman_upgraded",
+          "acog damage dualoptic_upgraded extbarrel_ar_power_upgraded extclip fastreload_dualmag fmj grip holo ir quickdraw reflex reddot rf_upgraded stalker steadyaim suppressed_ar"
+        ],
+        "attachmentTokens": [
+          "acog",
+          "damage",
+          "dualoptic_upgraded",
+          "extbarrel_ar_power_upgraded",
+          "extclip",
+          "fastreload_dualmag",
+          "fmj",
+          "grip",
+          "holo",
+          "ir",
+          "quickdraw",
+          "reflex",
+          "reddot",
+          "rf_upgraded",
+          "stalker",
+          "steadyaim",
+          "suppressed_ar"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "ar_standard",
+      "upgradeWeaponId": "ar_standard_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "rifle",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "120",
+          "",
+          "weapon_assault",
+          "WEAPON_AR_STANDARD",
+          "ar_standard_upgraded",
+          "",
+          "t7_icon_weapon_ar_standard",
+          "WEAPON_AR_STANDARD_DESC",
+          "reflex ir dualoptic reddot holo acog quickdraw stalker steadyaim rf grip extbarrel fastreload extclip fmj",
+          "120",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "ar_standard_upgraded",
+          "acog damage dualoptic_upgraded extbarrel_upgraded extclip fastreload_dualmag fmj grip holo ir quickdraw reflex reddot rf_upgraded stalker steadyaim suppressed"
+        ],
+        "attachmentTokens": [
+          "acog",
+          "damage",
+          "dualoptic_upgraded",
+          "extbarrel_upgraded",
+          "extclip",
+          "fastreload_dualmag",
+          "fmj",
+          "grip",
+          "holo",
+          "ir",
+          "quickdraw",
+          "reflex",
+          "reddot",
+          "rf_upgraded",
+          "stalker",
+          "steadyaim",
+          "suppressed"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "ar_garand",
+      "upgradeWeaponId": "ar_garand_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "rifle",
+        "isWonderWeapon": "",
+        "forceAttachments": "reflex rf"
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "127",
+          "",
+          "weapon_assault",
+          "WEAPON_AR_GARAND",
+          "ar_garand_upgraded",
+          "",
+          "t7_icon_weapon_ar_garand",
+          "WEAPON_AR_GARAND_DESC",
+          "reflex acog dualoptic holo ir reddot quickdraw grip suppressed damage stalker steadyaim fmj fastreload extclip extbarrel rf gmod6 gmod7",
+          "127",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "4",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "ar_garand_upgraded",
+          "acog damage dualoptic_upgraded extbarrel_ar_power_upgraded extclip_garand fastreload_dualmag fmj grip holo ir quickdraw reflex reddot rf_upgraded stalker steadyaim suppressed_ar"
+        ],
+        "attachmentTokens": [
+          "acog",
+          "damage",
+          "dualoptic_upgraded",
+          "extbarrel_ar_power_upgraded",
+          "extclip_garand",
+          "fastreload_dualmag",
+          "fmj",
+          "grip",
+          "holo",
+          "ir",
+          "quickdraw",
+          "reflex",
+          "reddot",
+          "rf_upgraded",
+          "stalker",
+          "steadyaim",
+          "suppressed_ar"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "ar_stg44",
+      "upgradeWeaponId": "ar_stg44_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "rifle",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": false,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": null
+      },
+      "attachmentMapping": {
+        "present": false,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": null,
+        "attachmentTokens": []
+      },
+      "specialEvidence": [
+        {
+          "path": "gamedata/weapons/zm/zm_prototype_weapons.csv",
+          "role": "prototype_upgrade_identity_only"
+        }
+      ],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "lmg_cqb",
+      "upgradeWeaponId": "lmg_cqb_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "lmg",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "130",
+          "",
+          "weapon_lmg",
+          "WEAPON_LMG_CQB",
+          "lmg_cqb_upgraded",
+          "",
+          "t7_icon_weapon_lmg_cqb",
+          "WEAPON_LMG_CQB_DESC",
+          "reflex ir dualoptic reddot holo acog quickdraw stalker steadyaim rf grip fastreload extclip fmj",
+          "130",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "lmg_cqb_upgraded",
+          "acog dualoptic_upgraded extclip fastreload fmj grip holo ir quickdraw_lmg reflex reddot rf_upgraded steadyaim stalker_lmg suppressed_lmg"
+        ],
+        "attachmentTokens": [
+          "acog",
+          "dualoptic_upgraded",
+          "extclip",
+          "fastreload",
+          "fmj",
+          "grip",
+          "holo",
+          "ir",
+          "quickdraw_lmg",
+          "reflex",
+          "reddot",
+          "rf_upgraded",
+          "steadyaim",
+          "stalker_lmg",
+          "suppressed_lmg"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "lmg_heavy",
+      "upgradeWeaponId": "lmg_heavy_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "lmg",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "131",
+          "",
+          "weapon_lmg",
+          "WEAPON_LMG_HEAVY",
+          "lmg_heavy_upgraded",
+          "",
+          "t7_icon_weapon_lmg_heavy",
+          "WEAPON_LMG_HEAVY_DESC",
+          "reflex ir dualoptic reddot holo acog quickdraw stalker steadyaim rf grip fastreload extclip fmj",
+          "131",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "lmg_heavy_upgraded",
+          "acog dualoptic_upgraded extclip fastreload fmj grip holo ir quickdraw_lmg reflex reddot rf_lmgheavy_upgraded steadyaim stalker_lmg suppressed_lmg"
+        ],
+        "attachmentTokens": [
+          "acog",
+          "dualoptic_upgraded",
+          "extclip",
+          "fastreload",
+          "fmj",
+          "grip",
+          "holo",
+          "ir",
+          "quickdraw_lmg",
+          "reflex",
+          "reddot",
+          "rf_lmgheavy_upgraded",
+          "steadyaim",
+          "stalker_lmg",
+          "suppressed_lmg"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "lmg_light",
+      "upgradeWeaponId": "lmg_light_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "lmg",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "132",
+          "",
+          "weapon_lmg",
+          "WEAPON_LMG_LIGHT",
+          "lmg_light_upgraded",
+          "",
+          "t7_icon_weapon_lmg_light",
+          "WEAPON_LMG_LIGHT_DESC",
+          "reflex ir dualoptic reddot holo acog quickdraw stalker steadyaim rf grip fastreload extclip fmj",
+          "132",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "lmg_light_upgraded",
+          "acog dualoptic_upgraded extclip fastreload fmj grip holo ir quickdraw_lmg reflex reddot rf_upgraded steadyaim stalker_lmg suppressed_lmg"
+        ],
+        "attachmentTokens": [
+          "acog",
+          "dualoptic_upgraded",
+          "extclip",
+          "fastreload",
+          "fmj",
+          "grip",
+          "holo",
+          "ir",
+          "quickdraw_lmg",
+          "reflex",
+          "reddot",
+          "rf_upgraded",
+          "steadyaim",
+          "stalker_lmg",
+          "suppressed_lmg"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "lmg_slowfire",
+      "upgradeWeaponId": "lmg_slowfire_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "lmg",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "133",
+          "",
+          "weapon_lmg",
+          "WEAPON_LMG_SLOWFIRE",
+          "lmg_slowfire_upgraded",
+          "",
+          "t7_icon_weapon_lmg_slowfire",
+          "WEAPON_LMG_SLOWFIRE_DESC",
+          "reflex ir dualoptic reddot holo acog quickdraw stalker steadyaim rf grip fastreload extclip fmj",
+          "133",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "lmg_slowfire_upgraded",
+          "acog dualoptic_upgraded extclip fastreload fmj grip holo ir quickdraw_lmg reflex reddot rf_upgraded steadyaim stalker_lmg suppressed_lmg"
+        ],
+        "attachmentTokens": [
+          "acog",
+          "dualoptic_upgraded",
+          "extclip",
+          "fastreload",
+          "fmj",
+          "grip",
+          "holo",
+          "ir",
+          "quickdraw_lmg",
+          "reflex",
+          "reddot",
+          "rf_upgraded",
+          "steadyaim",
+          "stalker_lmg",
+          "suppressed_lmg"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "pistol_burst",
+      "upgradeWeaponId": "pistol_burst_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "FALSE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "pistol",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "102",
+          "",
+          "weapon_pistol",
+          "WEAPON_PISTOL_BURST",
+          "pistol_burst_upgraded",
+          "",
+          "t7_icon_weapon_pistol_burst",
+          "WEAPON_PISTOL_BURST_DESC",
+          "reflex reddot quickdraw steadyaim extbarrel fastreload extclip fmj",
+          "102",
+          "100",
+          "",
+          "-1",
+          "secondary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "pistol_burst_upgraded",
+          "damage dw extbarrel_upgraded extclip fastreload fmj quickdraw reflex_pistol  reddot steadyaim suppressed"
+        ],
+        "attachmentTokens": [
+          "damage",
+          "dw",
+          "extbarrel_upgraded",
+          "extclip",
+          "fastreload",
+          "fmj",
+          "quickdraw",
+          "reflex_pistol",
+          "reddot",
+          "steadyaim",
+          "suppressed"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "pistol_fullauto",
+      "upgradeWeaponId": "pistol_fullauto_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "pistol",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "103",
+          "",
+          "weapon_pistol",
+          "WEAPON_PISTOL_FULLAUTO",
+          "pistol_fullauto_upgraded",
+          "",
+          "t7_icon_weapon_pistol_fullauto",
+          "WEAPON_PISTOL_FULLAUTO_DESC",
+          "reflex reddot quickdraw steadyaim extbarrel fastreload extclip fmj",
+          "103",
+          "100",
+          "",
+          "-1",
+          "secondary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "pistol_fullauto_upgraded",
+          "damage dw extbarrel_upgraded extclip fastreload fmj quickdraw reflex_pistol reddot steadyaim suppressed"
+        ],
+        "attachmentTokens": [
+          "damage",
+          "dw",
+          "extbarrel_upgraded",
+          "extclip",
+          "fastreload",
+          "fmj",
+          "quickdraw",
+          "reflex_pistol",
+          "reddot",
+          "steadyaim",
+          "suppressed"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "shotgun_fullauto",
+      "upgradeWeaponId": "shotgun_fullauto_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "shotgun",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "150",
+          "",
+          "weapon_cqb",
+          "WEAPON_SHOTGUN_FULLAUTO",
+          "shotgun_fullauto_upgraded",
+          "",
+          "t7_icon_weapon_shotgun_fullauto",
+          "WEAPON_SHOTGUN_FULLAUTO_DESC",
+          "reflex reddot holo quickdraw stalker steadyaim rf extbarrel fastreload extclip",
+          "150",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "shotgun_fullauto_upgraded",
+          "extbarrel_shotgun_upgraded extclip fastreload quickdraw reflex reddot rf_upgraded steadyaim stalker_shotgun suppressed_shotgun holo"
+        ],
+        "attachmentTokens": [
+          "extbarrel_shotgun_upgraded",
+          "extclip",
+          "fastreload",
+          "quickdraw",
+          "reflex",
+          "reddot",
+          "rf_upgraded",
+          "steadyaim",
+          "stalker_shotgun",
+          "suppressed_shotgun",
+          "holo"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "shotgun_precision",
+      "upgradeWeaponId": "shotgun_precision_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "shotgun",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "151",
+          "",
+          "weapon_cqb",
+          "WEAPON_SHOTGUN_PRECISION",
+          "shotgun_precision_upgraded",
+          "",
+          "t7_icon_weapon_shotgun_precision",
+          "WEAPON_SHOTGUN_PRECISION_DESC",
+          "reflex reddot holo quickdraw stalker steadyaim rf extbarrel fastreload extclip",
+          "151",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "shotgun_precision_upgraded",
+          "extbarrel_shotgun_upgraded extclip fastreload quickdraw reflex reddot rf_rechamber_upgraded steadyaim stalker_shotgun suppressed_shotgunprecision holo"
+        ],
+        "attachmentTokens": [
+          "extbarrel_shotgun_upgraded",
+          "extclip",
+          "fastreload",
+          "quickdraw",
+          "reflex",
+          "reddot",
+          "rf_rechamber_upgraded",
+          "steadyaim",
+          "stalker_shotgun",
+          "suppressed_shotgunprecision",
+          "holo"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "shotgun_pump",
+      "upgradeWeaponId": "shotgun_pump_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "shotgun",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "152",
+          "",
+          "weapon_cqb",
+          "WEAPON_SHOTGUN_PUMP",
+          "shotgun_pump_upgraded",
+          "",
+          "t7_icon_weapon_shotgun_pump",
+          "WEAPON_SHOTGUN_PUMP_DESC",
+          "reflex reddot holo quickdraw stalker steadyaim rf extbarrel fastreload extclip",
+          "152",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "shotgun_pump_upgraded",
+          "extbarrel_shotgun_upgraded extclip fastreload_segmented_upgraded quickdraw reflex reddot rf_rechamber_upgraded steadyaim stalker_shotgun suppressed_shotgun holo"
+        ],
+        "attachmentTokens": [
+          "extbarrel_shotgun_upgraded",
+          "extclip",
+          "fastreload_segmented_upgraded",
+          "quickdraw",
+          "reflex",
+          "reddot",
+          "rf_rechamber_upgraded",
+          "steadyaim",
+          "stalker_shotgun",
+          "suppressed_shotgun",
+          "holo"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "shotgun_semiauto",
+      "upgradeWeaponId": "shotgun_semiauto_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "shotgun",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "153",
+          "",
+          "weapon_cqb",
+          "WEAPON_SHOTGUN_SEMIAUTO",
+          "shotgun_semiauto_upgraded",
+          "",
+          "t7_icon_weapon_shotgun_semiauto",
+          "WEAPON_SHOTGUN_SEMIAUTO_DESC",
+          "reflex reddot holo quickdraw stalker steadyaim rf extbarrel fastreload extclip",
+          "153",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "shotgun_semiauto_upgraded",
+          "extbarrel_shotgun_upgraded extclip fastreload quickdraw reflex reddot rf_upgraded steadyaim stalker_shotgun suppressed_shotgun holo"
+        ],
+        "attachmentTokens": [
+          "extbarrel_shotgun_upgraded",
+          "extclip",
+          "fastreload",
+          "quickdraw",
+          "reflex",
+          "reddot",
+          "rf_upgraded",
+          "steadyaim",
+          "stalker_shotgun",
+          "suppressed_shotgun",
+          "holo"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "launcher_standard",
+      "upgradeWeaponId": "launcher_standard_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "TRUE",
+        "weaponClass": "special",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "158",
+          "",
+          "weapon_launcher",
+          "WEAPON_LAUNCHER_STANDARD",
+          "launcher_standard_upgraded",
+          "1",
+          "t7_icon_weapon_launcher_standard",
+          "WEAPON_LAUNCHER_STANDARD_DESC",
+          "",
+          "158",
+          "100",
+          "",
+          "-1",
+          "secondary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": false,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": null,
+        "attachmentTokens": []
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "smg_burst",
+      "upgradeWeaponId": "smg_burst_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "smg",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "111",
+          "",
+          "weapon_smg",
+          "WEAPON_SMG_BURST",
+          "smg_burst_upgraded",
+          "",
+          "t7_icon_weapon_smg_burst",
+          "WEAPON_SMG_BURST_DESC",
+          "reflex dualoptic reddot holo acog quickdraw stalker steadyaim rf grip extbarrel fastreload extclip fmj",
+          "111",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "smg_burst_upgraded",
+          "acog dualoptic_upgraded extbarrel_smg_upgraded extclip fastreload fmj grip quickdraw_smg reflex reddot rf_smgburst_upgraded steadyaim_light stalker_smg suppressed_smg holo"
+        ],
+        "attachmentTokens": [
+          "acog",
+          "dualoptic_upgraded",
+          "extbarrel_smg_upgraded",
+          "extclip",
+          "fastreload",
+          "fmj",
+          "grip",
+          "quickdraw_smg",
+          "reflex",
+          "reddot",
+          "rf_smgburst_upgraded",
+          "steadyaim_light",
+          "stalker_smg",
+          "suppressed_smg",
+          "holo"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "smg_capacity",
+      "upgradeWeaponId": "smg_capacity_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "smg",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "115",
+          "",
+          "weapon_smg",
+          "WEAPON_SMG_CAPACITY",
+          "smg_capacity_upgraded",
+          "",
+          "t7_icon_weapon_smg_capacity",
+          "WEAPON_SMG_CAPACITY_DESC",
+          "reflex dualoptic reddot holo acog quickdraw stalker steadyaim rf grip extbarrel fastreload extclip fmj",
+          "115",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "smg_capacity_upgraded",
+          "acog dualoptic_upgraded extbarrel_smg_upgraded extclip fastreload fmj grip quickdraw_smg reflex reddot rf_upgraded steadyaim_light stalker_smg suppressed_smg holo"
+        ],
+        "attachmentTokens": [
+          "acog",
+          "dualoptic_upgraded",
+          "extbarrel_smg_upgraded",
+          "extclip",
+          "fastreload",
+          "fmj",
+          "grip",
+          "quickdraw_smg",
+          "reflex",
+          "reddot",
+          "rf_upgraded",
+          "steadyaim_light",
+          "stalker_smg",
+          "suppressed_smg",
+          "holo"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "smg_fastfire",
+      "upgradeWeaponId": "smg_fastfire_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "smg",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "112",
+          "",
+          "weapon_smg",
+          "WEAPON_SMG_FASTFIRE",
+          "smg_fastfire_upgraded",
+          "",
+          "t7_icon_weapon_smg_fastfire",
+          "WEAPON_SMG_FASTFIRE_DESC",
+          "reflex dualoptic reddot holo acog quickdraw stalker steadyaim rf grip extbarrel fastreload extclip fmj",
+          "112",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "smg_fastfire_upgraded",
+          "acog dualoptic_upgraded extbarrel_smg_upgraded extclip fastreload fmj grip quickdraw_smg reflex reddot rf_upgraded steadyaim_light stalker_smg suppressed_smg holo"
+        ],
+        "attachmentTokens": [
+          "acog",
+          "dualoptic_upgraded",
+          "extbarrel_smg_upgraded",
+          "extclip",
+          "fastreload",
+          "fmj",
+          "grip",
+          "quickdraw_smg",
+          "reflex",
+          "reddot",
+          "rf_upgraded",
+          "steadyaim_light",
+          "stalker_smg",
+          "suppressed_smg",
+          "holo"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "smg_standard",
+      "upgradeWeaponId": "smg_standard_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "smg",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "110",
+          "",
+          "weapon_smg",
+          "WEAPON_SMG_STANDARD",
+          "smg_standard_upgraded",
+          "",
+          "t7_icon_weapon_smg_standard",
+          "WEAPON_SMG_STANDARD_DESC",
+          "reflex dualoptic reddot holo acog quickdraw stalker steadyaim rf grip extbarrel fastreload extclip fmj",
+          "110",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "smg_standard_upgraded",
+          "acog dualoptic_upgraded extbarrel_smg_upgraded extclip fastreload fmj grip quickdraw_smg reflex reddot rf_upgraded steadyaim_light stalker_smg suppressed_smg holo"
+        ],
+        "attachmentTokens": [
+          "acog",
+          "dualoptic_upgraded",
+          "extbarrel_smg_upgraded",
+          "extclip",
+          "fastreload",
+          "fmj",
+          "grip",
+          "quickdraw_smg",
+          "reflex",
+          "reddot",
+          "rf_upgraded",
+          "steadyaim_light",
+          "stalker_smg",
+          "suppressed_smg",
+          "holo"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "smg_versatile",
+      "upgradeWeaponId": "smg_versatile_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "smg",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "114",
+          "",
+          "weapon_smg",
+          "WEAPON_SMG_VERSATILE",
+          "smg_versatile_upgraded",
+          "",
+          "t7_icon_weapon_smg_versatile",
+          "WEAPON_SMG_VERSATILE_DESC",
+          "reflex dualoptic reddot holo acog quickdraw stalker steadyaim rf grip extbarrel fastreload extclip fmj",
+          "114",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "smg_versatile_upgraded",
+          "acog dualoptic_upgraded extbarrel_smg_upgraded extclip fastreload_versatile fmj grip quickdraw_smg reflex reddot rf_upgraded steadyaim_light stalker_smg suppressed_smg holo"
+        ],
+        "attachmentTokens": [
+          "acog",
+          "dualoptic_upgraded",
+          "extbarrel_smg_upgraded",
+          "extclip",
+          "fastreload_versatile",
+          "fmj",
+          "grip",
+          "quickdraw_smg",
+          "reflex",
+          "reddot",
+          "rf_upgraded",
+          "steadyaim_light",
+          "stalker_smg",
+          "suppressed_smg",
+          "holo"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "smg_mp40_1940",
+      "upgradeWeaponId": "smg_mp40_1940_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "smg",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": false,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": null
+      },
+      "attachmentMapping": {
+        "present": false,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": null,
+        "attachmentTokens": []
+      },
+      "specialEvidence": [
+        {
+          "path": "gamedata/weapons/zm/zm_prototype_weapons.csv",
+          "role": "prototype_upgrade_identity_only"
+        }
+      ],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "smg_sten",
+      "upgradeWeaponId": "smg_sten_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "smg",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "171",
+          "",
+          "weapon_smg",
+          "WEAPON_SMG_STEN",
+          "smg_sten_upgraded",
+          "1",
+          "t7_icon_weapon_smg_sten",
+          "WEAPON_SMG_STEN_DESC",
+          "",
+          "171",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": false,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": null,
+        "attachmentTokens": []
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "smg_ak74u",
+      "upgradeWeaponId": "smg_ak74u_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "smg",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "116",
+          "",
+          "weapon_smg",
+          "WEAPON_SMG_AK74U",
+          "smg_ak74u_upgraded",
+          "",
+          "t7_icon_weapon_smg_ak74u",
+          "WEAPON_SMG_AK74U_DESC",
+          "reflex acog dualoptic holo reddot quickdraw suppressed grip stalker steadyaim fmj fastreload extbarrel extclip rf gmod6 gmod7",
+          "12",
+          "0",
+          "",
+          "-1",
+          "primary",
+          "",
+          "",
+          "",
+          "",
+          "9",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "smg_ak74u_upgraded",
+          "acog_kick dualoptic_kick extbarrel_smg_upgraded extclip fastreload fmj grip quickdraw_smg reflex reddot rf_upgraded steadyaim_light stalker_smg suppressed_smg holo gmod6 gmod7"
+        ],
+        "attachmentTokens": [
+          "acog_kick",
+          "dualoptic_kick",
+          "extbarrel_smg_upgraded",
+          "extclip",
+          "fastreload",
+          "fmj",
+          "grip",
+          "quickdraw_smg",
+          "reflex",
+          "reddot",
+          "rf_upgraded",
+          "steadyaim_light",
+          "stalker_smg",
+          "suppressed_smg",
+          "holo",
+          "gmod6",
+          "gmod7"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "sniper_fastbolt",
+      "upgradeWeaponId": "sniper_fastbolt_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "sniper",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "140",
+          "",
+          "weapon_sniper",
+          "WEAPON_SNIPER_FASTBOLT",
+          "sniper_fastbolt_upgraded",
+          "",
+          "t7_icon_weapon_sniper_fastbolt",
+          "WEAPON_SNIPER_FASTBOLT_DESC",
+          "reddot ir dualoptic acog swayreduc stalker rf fastreload extclip fmj",
+          "140",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "sniper_fastbolt_upgraded",
+          "acog_sniper dualoptic_upgraded extclip fastreload fmj ir_sniper reddot_sniper rf_fastbolt_upgraded stalker_sniper suppressed swayreduc"
+        ],
+        "attachmentTokens": [
+          "acog_sniper",
+          "dualoptic_upgraded",
+          "extclip",
+          "fastreload",
+          "fmj",
+          "ir_sniper",
+          "reddot_sniper",
+          "rf_fastbolt_upgraded",
+          "stalker_sniper",
+          "suppressed",
+          "swayreduc"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "sniper_powerbolt",
+      "upgradeWeaponId": "sniper_powerbolt_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "sniper",
+        "isWonderWeapon": "",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "142",
+          "",
+          "weapon_sniper",
+          "WEAPON_SNIPER_POWERBOLT",
+          "sniper_powerbolt_upgraded",
+          "",
+          "t7_icon_weapon_sniper_fastbolt",
+          "WEAPON_SNIPER_POWERBOLT_DESC",
+          "reddot ir dualoptic acog swayreduc stalker rf fastreload extclip fmj",
+          "142",
+          "100",
+          "",
+          "-1",
+          "primary",
+          "100",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "sniper_powerbolt_upgraded",
+          "acog_sniper dualoptic_upgraded extclip fastreload fmj ir_sniper reddot_sniper rf_powerbolt_upgraded stalker_sniper suppressed swayreduc"
+        ],
+        "attachmentTokens": [
+          "acog_sniper",
+          "dualoptic_upgraded",
+          "extclip",
+          "fastreload",
+          "fmj",
+          "ir_sniper",
+          "reddot_sniper",
+          "rf_powerbolt_upgraded",
+          "stalker_sniper",
+          "suppressed",
+          "swayreduc"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "raygun_mark2",
+      "upgradeWeaponId": "raygun_mark2_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "TRUE",
+        "limit": "1",
+        "upgradeLimit": "",
+        "isAatExempt": "TRUE",
+        "weaponClass": "special",
+        "isWonderWeapon": "TRUE",
+        "forceAttachments": ""
+      },
+      "statstable": {
+        "present": false,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": null
+      },
+      "attachmentMapping": {
+        "present": false,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": null,
+        "attachmentTokens": []
+      },
+      "specialEvidence": [
+        {
+          "path": "scripts/zm/_zm.gsc",
+          "role": "zombies_runtime_identity_usage"
+        },
+        {
+          "path": "gamedata/weapons/zm/zm_prototype_weapons.csv",
+          "role": "prototype_upgrade_identity"
+        }
+      ],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    },
+    {
+      "baseWeaponId": "lmg_rpk",
+      "upgradeWeaponId": "lmg_rpk_upgraded",
+      "identityStatus": "verified",
+      "prototype": {
+        "source": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+        "inBox": "TRUE",
+        "upgradeInBox": "FALSE",
+        "isLimited": "FALSE",
+        "limit": "",
+        "upgradeLimit": "",
+        "isAatExempt": "",
+        "weaponClass": "lmg",
+        "isWonderWeapon": "",
+        "forceAttachments": "reflex quickdraw_lmg"
+      },
+      "statstable": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/stats/zm/zm_statstable.csv",
+        "blobSha": "c3f341262c495765b042aeff61400403bcfb23ef",
+        "rawRow": [
+          "178",
+          "",
+          "weapon_lmg",
+          "WEAPON_LMG_RPK",
+          "lmg_rpk_upgraded",
+          "",
+          "t7_icon_weapon_lmg_rpk",
+          "WEAPON_LMG_RPK_DESC",
+          "reflex acog dualoptic holo ir reddot quickdraw grip suppressed stalker steadyaim fmj fastreload extclip rf gmod6 gmod7",
+          "6",
+          "0",
+          "",
+          "-1",
+          "primary",
+          "",
+          "",
+          "",
+          "",
+          "10",
+          "",
+          ""
+        ]
+      },
+      "attachmentMapping": {
+        "present": true,
+        "sourceRepository": "ate47/bo3-source",
+        "path": "gamedata/weapons/common/attachmentmappingstable.csv",
+        "blobSha": "22ca4036eab92f098238c6e139c9e5083824d8aa",
+        "rawRow": [
+          "lmg_rpk_upgraded",
+          "acog dualoptic_kick extclip fastreload fmj grip holo ir quickdraw_lmg reflex reddot rf steadyaim stalker_lmg suppressed_lmg gmod6 gmod7"
+        ],
+        "attachmentTokens": [
+          "acog",
+          "dualoptic_kick",
+          "extclip",
+          "fastreload",
+          "fmj",
+          "grip",
+          "holo",
+          "ir",
+          "quickdraw_lmg",
+          "reflex",
+          "reddot",
+          "rf",
+          "steadyaim",
+          "stalker_lmg",
+          "suppressed_lmg",
+          "gmod6",
+          "gmod7"
+        ]
+      },
+      "specialEvidence": [],
+      "ballisticUpgradeStatsStatus": "pending",
+      "nativeRuntimeStatus": "pending",
+      "presentationStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending",
+      "blockers": [
+        "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
+        "native_pack_a_punch_runtime_pending",
+        "model_audio_animation_parity_pending"
+      ]
+    }
+  ]
+}
