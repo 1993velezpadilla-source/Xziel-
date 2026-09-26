@@ -27,7 +27,9 @@
     "startWeaponEvidence": {
       "repository": "ate47/bo3-source",
       "path": "scripts/zm/zm_prototype.gsc",
-      "rule": "level.default_laststandpistol = pistol_m1911; level.start_weapon = level.default_laststandpistol"
+      "rule": "level.default_laststandpistol = pistol_m1911; level.start_weapon = level.default_laststandpistol",
+      "blobSha": "f23c1f739a30f4922c3851527a93ce1f0fc593a5",
+      "ref": "main"
     }
   },
   "filterRule": {
@@ -45,7 +47,10 @@
     ],
     "startWeapon": "pistol_m1911",
     "wonderWeaponRule": "exclude when BO3 is_wonder_weapon/source runtime wonder check is true",
-    "equipmentRule": "exclude melee and grenade weapons"
+    "equipmentRule": "exclude melee and grenade weapons",
+    "prototypeEligibleBeforeStartWeaponExclusion": 27,
+    "finalEligibleAfterStartWeaponExclusion": 26,
+    "note": "MR6/pistol_standard remains eligible; M1911 is the Nacht start weapon and is also explicitly source-excluded."
   },
   "runtimeSemantics": {
     "durationSeconds": 300,
