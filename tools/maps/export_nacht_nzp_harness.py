@@ -22,6 +22,7 @@ REFERENCE = Path(
         ROOT / "assets/nacht_reference/runtime_reference_v1.json",
     )
 )
+SYSTEM_PLACEMENTS = ROOT / "assets/nacht_reference/bo3_system_placements_v1.json"
 OUT = Path(
     os.environ.get(
         "XZIEL_NACHT_MAP_OUT",
@@ -117,6 +118,23 @@ def brush_entity(
 
 
 reference = json.loads(REFERENCE.read_text(encoding="utf-8"))
+system_placements = json.loads(SYSTEM_PLACEMENTS.read_text(encoding="utf-8"))
+
+box_placements = [
+    row for row in system_placements.get("entities", [])
+    if row.get("type") == "mystery_box"
+]
+assert len(box_placements) == 1
+mystery_box_placement = box_placements[0]
+mystery_box_transform = mystery_box_placement["transform"]
+mystery_box_position_m = [
+    mystery_box_transform["position"]["x"],
+    mystery_box_transform["position"]["y"],
+    mystery_box_transform["position"]["z"],
+]
+mystery_box_yaw = float(
+    (mystery_box_transform.get("rotationDegrees") or {}).get("yaw", 0.0)
+)
 
 assert reference["runtimePolicy"]["serverAuthoritative"] is True
 assert reference["runtimePolicy"]["maximumPlayers"] == 4
@@ -142,6 +160,7 @@ assert len(blocked_purchases) == 8
 all_positions: list[list[float]] = []
 for group in ("purchases", "doors", "barricades", "zombieSpawns", "playerSpawns"):
     all_positions.extend(item["positionMeters"] for item in reference[group])
+all_positions.append(mystery_box_position_m)
 
 mins_m = [min(p[i] for p in all_positions) for i in range(3)]
 maxs_m = [max(p[i] for p in all_positions) for i in range(3)]
@@ -344,6 +363,30 @@ parts.append(
     )
 )
 
+# Native NZ:P Mystery Box at the persisted BO3 Nacht reference anchor.
+# Weapon rewards are controlled by the generated maps/xziel_nacht_bo3.mb2
+# readiness allow-list. The QuakeC patch refuses purchases when that list has
+# zero ready weapons, so development builds cannot charge the player for an
+# invisible/incomplete reward.
+box_props = mystery_box_placement.get("properties", {})
+parts.append(
+    point_entity(
+        "mystery_box",
+        qv(mystery_box_position_m),
+        {
+            "angles": f"0 {mystery_box_yaw:.6f} 0",
+            "cost": str(int(box_props.get("cost", 950))),
+            "model": "models/machines/mystery.mdl",
+            "weapon2model": "models/machines/mglow$.mdl",
+            "oldmodel": "sounds/machines/mbox_open.wav",
+            "powerup_vo": "sounds/machines/mbox_close.wav",
+            "spawnflags": "0",
+            "useprint_string_1": "Hold %b for Mystery Box",
+            "useprint_string_2": "Hold %b for %s",
+        },
+    )
+)
+
 # Lighting only exists to make Android smoke screenshots non-flat.
 center_x = (wx1 + wx2) // 2
 center_y = (wy1 + wy2) // 2
@@ -371,6 +414,16 @@ summary = {
         "doors": len(reference["doors"]),
         "nativePurchases": len(native_purchases),
         "blockedBo3WeaponPurchases": len(blocked_purchases),
+        "mysteryBoxes": 1,
+    },
+    "mysteryBox": {
+        "id": mystery_box_placement["id"],
+        "positionMeters": mystery_box_position_m,
+        "yawDegrees": mystery_box_yaw,
+        "cost": int(box_props.get("cost", 950)),
+        "runtimePoolSidecar": "maps/xziel_nacht_bo3.mb2",
+        "rewardPolicy": "runtime_ready_only",
+        "emptyPoolBehavior": "deny_without_charge",
     },
     "nativePurchase": {
         "id": frag["id"],
