@@ -113,7 +113,16 @@
       "semanticId": 8,
       "upstreamId": null,
       "primitiveAvailable": false,
-      "missingNativeFeature": "fire_sale"
+      "missingNativeFeature": "fire_sale",
+      "xzielLogicAvailable": true,
+      "xzielLogicSymbol": "XZIEL_StartFireSaleLogic",
+      "logicParity": {
+        "cost": 10,
+        "durationSeconds": 30,
+        "status": "logic_ready"
+      },
+      "presentationStatus": "pending",
+      "multiLocationBoxPresentationStatus": "pending"
     },
     {
       "id": "death_machine",
@@ -139,6 +148,14 @@
     ],
     "missingPowerupPrimitives": [
       "fire_sale",
+      "death_machine"
+    ],
+    "expectedXZIELPowerupLogicCount": 8,
+    "missingFullPowerupImplementations": [
+      "fire_sale",
+      "death_machine"
+    ],
+    "missingPowerupLogicPrimitives": [
       "death_machine"
     ]
   }
