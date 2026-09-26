@@ -203,3 +203,50 @@ done:
     Xziel_ClearException(env);
     return copied;
 }
+
+
+void Xziel_Android_OnlineReportEngineState(int serverActive, int clientConnected,
+    int signon, const char *map)
+{
+    JNIEnv *env = Xziel_Env();
+    jobject activity = Xziel_Activity(env);
+    jmethodID method;
+    jstring mapString = NULL;
+
+    if (!env || !activity)
+        goto done;
+
+    method = Xziel_Method(env, activity, "xzielOnlineEngineState",
+        "(ZZILjava/lang/String;)V");
+    if (!method)
+        goto done;
+
+    mapString = (*env)->NewStringUTF(env, map ? map : "");
+    if (!mapString)
+        goto done;
+
+    (*env)->CallVoidMethod(env, activity, method,
+        serverActive ? JNI_TRUE : JNI_FALSE,
+        clientConnected ? JNI_TRUE : JNI_FALSE,
+        (jint)signon, mapString);
+
+done:
+    if (mapString)
+        (*env)->DeleteLocalRef(env, mapString);
+    if (activity)
+        (*env)->DeleteLocalRef(env, activity);
+    Xziel_ClearException(env);
+}
+
+void Xziel_Android_OnlineLeaveRoom(void)
+{
+    JNIEnv *env = Xziel_Env();
+    jobject activity = Xziel_Activity(env);
+    jmethodID method = Xziel_Method(env, activity, "xzielLeaveMultiplayer", "()V");
+
+    if (method)
+        (*env)->CallVoidMethod(env, activity, method);
+    if (activity)
+        (*env)->DeleteLocalRef(env, activity);
+    Xziel_ClearException(env);
+}
