@@ -110,8 +110,38 @@ jobs:
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/mapglb" audit-out
           dotnet "$RUNNER_TEMP/mapexport/bin/Release/net10.0/mapexport.dll" "$PAK_EXTRACT" "$RUNNER_TEMP/mapglb" audit-out/cue4parse-mapfiles-report.json 2>&1 | tee audit-out/cue4parse-mapfiles.log
+          # CUE4Parse's current exporter normalizes output paths to Windows
+          # backslashes. On Linux that creates top-level filenames containing
+          # literal backslashes. Recover those successful GLBs into mapglb.
+          python3 - <<'PY'
+          import json, os, pathlib, shutil
+          report=json.loads(pathlib.Path('audit-out/cue4parse-mapfiles-report.json').read_text())
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'mapglb'
+          out.mkdir(parents=True,exist_ok=True)
+          moved=0
+          for result in report.get('results',[]):
+              if not result.get('Success'): continue
+              for reported in result.get('DiskFilePaths',[]):
+                  name=reported.replace('\\','/').split('/')[-1]
+                  candidates=[
+                      pathlib.Path(reported),
+                      pathlib.Path.cwd()/reported,
+                      pathlib.Path.cwd()/reported.lstrip('\\/'),
+                  ]
+                  # Most Linux writes land as one cwd filename with literal backslashes.
+                  candidates += [p for p in pathlib.Path.cwd().iterdir()
+                                 if p.is_file() and p.name.endswith(name) and '\\' in p.name]
+                  src=next((p for p in candidates if p.exists() and p.is_file()),None)
+                  if src:
+                      dst=out/name
+                      if src.resolve()!=dst.resolve():
+                          shutil.move(str(src),str(dst))
+                      moved+=1
+          print('Recovered GLBs:',moved)
+          PY
           find "$RUNNER_TEMP/mapglb" -type f -name '*.glb' -printf '%s %p\n' | sort -nr > audit-out/glb-files.txt
           echo "GLB count: $(wc -l < audit-out/glb-files.txt)"
+          test "$(wc -l < audit-out/glb-files.txt)" -eq 120
 
       - name: Analyze geometry and render top-down vertex map
         run: |
