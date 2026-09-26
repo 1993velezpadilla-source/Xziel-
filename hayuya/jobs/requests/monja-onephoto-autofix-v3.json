@@ -15,6 +15,6 @@
   "texture_quality": "ultra",
   "portable_target": "high",
   "gpu_vram": 24,
-  "backends": "trellis2,trellis",
-  "retry_token": "onephoto-autofix-v5-gradio-chain-20260925"
+  "backends": "trellis2,triposr",
+  "retry_token": "onephoto-autofix-v6-cpu-continuity-20260925"
 }
