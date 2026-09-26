@@ -1,4 +1,4 @@
-name: Pavlov BO3 Nacht MAP_FILES Geometry Audit
+name: Pavlov BO3 Nacht MAP_FILES glTF Audit
 
 on:
   workflow_dispatch:
@@ -9,200 +9,112 @@ on:
       - ".github/workflows/pavlov-bo3-nacht-mapfiles-gltf-audit.yml"
 
 jobs:
-  export-map-geometry:
+  export:
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install SteamCMD and repak
+      - name: Install dependencies
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/steamcmd" "$RUNNER_TEMP/repak"
+          sudo apt-get update
+          sudo apt-get install -y p7zip-full file libsdl2-dev zlib1g-dev libpng-dev build-essential perl git
+
+      - name: Install SteamCMD and download Pavlov Nacht
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/steamcmd"
           curl -fL --retry 6 --retry-delay 2 --retry-all-errors https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz -o "$RUNNER_TEMP/steamcmd.tgz"
           tar -xzf "$RUNNER_TEMP/steamcmd.tgz" -C "$RUNNER_TEMP/steamcmd"
           "$RUNNER_TEMP/steamcmd/steamcmd.sh" +quit || true
-          curl -fL --retry 5 https://github.com/trumank/repak/releases/download/v0.2.3/repak_cli-x86_64-unknown-linux-gnu.tar.xz -o "$RUNNER_TEMP/repak.tar.xz"
-          tar -xJf "$RUNNER_TEMP/repak.tar.xz" -C "$RUNNER_TEMP/repak"
-          REPAK_BIN=$(find "$RUNNER_TEMP/repak" -type f \( -name "repak" -o -name "repak_cli" -o -name "repak*" \) -print -quit)
-          test -n "$REPAK_BIN"
-          chmod +x "$REPAK_BIN"
-          echo "REPAK_BIN=$REPAK_BIN" >> "$GITHUB_ENV"
-          echo "repak binary: $REPAK_BIN"
-
-      - name: Download and unpack Pavlov BO3 Nacht
-        run: |
           set +e
           "$RUNNER_TEMP/steamcmd/steamcmd.sh" +login anonymous +workshop_download_item 555160 2755515831 validate +quit 2>&1 | tee "$RUNNER_TEMP/steamcmd.log"
+          set -e
           ROOT=$(find "$HOME" "$RUNNER_TEMP" -type d -path '*/steamapps/workshop/content/555160/2755515831' -print -quit 2>/dev/null)
-          if [ -z "$ROOT" ]; then echo 'Workshop payload missing'; exit 1; fi
-          PAK="$ROOT/WindowsNoEditor.pak"
-          test -f "$PAK" || exit 1
-          mkdir -p "$RUNNER_TEMP/pakextract"
-          "$REPAK_BIN" unpack "$PAK" -o "$RUNNER_TEMP/pakextract"
-          echo "PAK_EXTRACT=$RUNNER_TEMP/pakextract" >> "$GITHUB_ENV"
-          exit 0
+          test -n "$ROOT"
+          test -f "$ROOT/WindowsNoEditor.pak"
+          echo "PAK=$ROOT/WindowsNoEditor.pak" >> "$GITHUB_ENV"
 
-      - name: Build CUE4Parse GLB exporter
+      - name: Unpack Pavlov PAK
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/mapexport"
-          cd "$RUNNER_TEMP/mapexport"
-          dotnet new console --framework net10.0 --force
-          dotnet add package CUE4Parse --version 1.2.2.202609
-          dotnet add package CUE4Parse-Conversion --version 1.2.2.202609
-          cat > Program.cs <<'CS'
-          using CUE4Parse.FileProvider;
-          using CUE4Parse.UE4.Versions;
-          using CUE4Parse.UE4.Assets.Exports.StaticMesh;
-          using CUE4Parse_Conversion;
-          using CUE4Parse_Conversion.Options;
-          using Newtonsoft.Json;
+          curl -fL https://github.com/trumank/repak/releases/download/v0.2.3/repak_cli-x86_64-unknown-linux-gnu.tar.xz -o "$RUNNER_TEMP/repak.tar.xz"
+          mkdir -p "$RUNNER_TEMP/repak"
+          tar -xJf "$RUNNER_TEMP/repak.tar.xz" -C "$RUNNER_TEMP/repak"
+          REPAK=$(find "$RUNNER_TEMP/repak" -type f -name repak -perm -111 | head -1)
+          test -n "$REPAK"
+          mkdir -p "$RUNNER_TEMP/pavlov-unpacked"
+          "$REPAK" unpack "$PAK" -o "$RUNNER_TEMP/pavlov-unpacked"
+          test -d "$RUNNER_TEMP/pavlov-unpacked/Pavlov/Content/CustomMaps/UGC2755515831/CoD_nacht/MAP_FILES"
+          echo "UNPACKED=$RUNNER_TEMP/pavlov-unpacked" >> "$GITHUB_ENV"
 
-          if (args.Length < 3) {
-              Console.Error.WriteLine("usage: mapexport <root> <out> <report>");
-              return 2;
-          }
-
-          var provider = new DefaultFileProvider(args[0], SearchOption.AllDirectories, true, new VersionContainer(EGame.GAME_UE4_21));
-          provider.Initialize();
-          provider.PostMount();
-          provider.LoadVirtualPaths();
-
-          var candidates = provider.Files.Values
-              .Where(f => f.IsUePackage)
-              .Where(f => f.Path.Contains("/CoD_nacht/MAP_FILES/", StringComparison.OrdinalIgnoreCase))
-              .Where(f => f.Path.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase))
-              .OrderBy(f => f.Path)
-              .ToArray();
-
-          var session = new ExportSession { MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount / 2) };
-          var queued = new List<object>();
-          var errors = new List<object>();
-
-          foreach (var file in candidates) {
-              try {
-                  var pkg = provider.LoadPackage(file.Path);
-                  var meshes = pkg.GetExports().OfType<UStaticMesh>().ToArray();
-                  foreach (var mesh in meshes) {
-                      var path = mesh.GetPathName();
-                      if (!path.Contains("zm_prototype_part", StringComparison.OrdinalIgnoreCase)) continue;
-                      session.Add(mesh);
-                      queued.Add(new { file = file.Path, objectPath = path, name = mesh.Name });
-                  }
-              } catch (Exception ex) {
-                  errors.Add(new { file = file.Path, error = ex.ToString() });
-              }
-          }
-
-          Console.WriteLine($"MAP_FILES candidates={candidates.Length} queued={queued.Count} preErrors={errors.Count}");
-          var options = new ExportOptions(meshFormat: EMeshFormat.Gltf2, exportMaterials: false);
-          var results = await session.RunAsync(args[1], options);
-          var report = new { candidates = candidates.Length, queued, preErrors = errors, resultCount = results.Count, results };
-          File.WriteAllText(args[2], JsonConvert.SerializeObject(report, Formatting.Indented, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore }));
-          Console.WriteLine($"export results={results.Count}");
-          return results.Count > 0 ? 0 : 3;
-          CS
-          dotnet build -c Release
-
-      - name: Export zm_prototype MAP_FILES meshes
+      - name: Build UE Viewer / umodel
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/mapglb" audit-out
-          dotnet "$RUNNER_TEMP/mapexport/bin/Release/net10.0/mapexport.dll" "$PAK_EXTRACT" "$RUNNER_TEMP/mapglb" audit-out/cue4parse-mapfiles-report.json 2>&1 | tee audit-out/cue4parse-mapfiles.log
-          # CUE4Parse's current exporter normalizes output paths to Windows
-          # backslashes. On Linux that creates top-level filenames containing
-          # literal backslashes. Recover those successful GLBs into mapglb.
+          git clone --depth 1 https://github.com/gildor2/UEViewer.git "$RUNNER_TEMP/UEViewer"
+          cd "$RUNNER_TEMP/UEViewer"
+          ./build.sh
+          UMODEL=$(find . -type f -name umodel -perm -111 | head -1)
+          test -n "$UMODEL"
+          UMODEL=$(realpath "$UMODEL")
+          echo "UMODEL=$UMODEL" >> "$GITHUB_ENV"
+          "$UMODEL" -version | tee "$RUNNER_TEMP/umodel-version.txt"
+
+      - name: Export all Nacht MAP_FILES static meshes to glTF
+        run: |
+          set -euo pipefail
+          mkdir -p audit-out "$RUNNER_TEMP/umodel-export"
+          MAPROOT="$UNPACKED/Pavlov/Content/CustomMaps/UGC2755515831/CoD_nacht/MAP_FILES"
+          find "$MAPROOT" -type f -name '*.uasset' | sort > audit-out/mapfiles-uassets.txt
+          TOTAL=$(wc -l < audit-out/mapfiles-uassets.txt)
+          echo "uasset_count=$TOTAL" | tee audit-out/export-summary.txt
+          : > audit-out/umodel-results.tsv
+          ok=0; fail=0
+          while IFS= read -r file; do
+            rel=${file#"$UNPACKED/"}
+            log="$RUNNER_TEMP/umodel-one.log"
+            if "$UMODEL" -export -gltf -game=ue4.21 -path="$UNPACKED" -out="$RUNNER_TEMP/umodel-export" "$rel" >"$log" 2>&1; then
+              status=ok; ok=$((ok+1))
+            else
+              status=fail; fail=$((fail+1))
+            fi
+            first=$(grep -E 'Exporting|ERROR|WARNING|StaticMesh|glTF' "$log" | head -1 | tr '\t' ' ' || true)
+            printf '%s\t%s\t%s\n' "$status" "$rel" "$first" >> audit-out/umodel-results.tsv
+          done < audit-out/mapfiles-uassets.txt
+          echo "ok=$ok" | tee -a audit-out/export-summary.txt
+          echo "fail=$fail" | tee -a audit-out/export-summary.txt
+
+          find "$RUNNER_TEMP/umodel-export" -type f -printf '%s\t%p\n' | sort -nr > audit-out/exported-files.tsv || true
           python3 - <<'PY'
-          import json, os, pathlib, shutil
-          report=json.loads(pathlib.Path('audit-out/cue4parse-mapfiles-report.json').read_text())
-          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'mapglb'
-          out.mkdir(parents=True,exist_ok=True)
-          moved=0
-          for result in report.get('results',[]):
-              if not result.get('Success'): continue
-              for reported in result.get('DiskFilePaths',[]):
-                  name=reported.replace('\\','/').split('/')[-1]
-                  candidates=[
-                      pathlib.Path(reported),
-                      pathlib.Path.cwd()/reported,
-                      pathlib.Path.cwd()/reported.lstrip('\\/'),
-                  ]
-                  # Most Linux writes land as one cwd filename with literal backslashes.
-                  candidates += [p for p in pathlib.Path.cwd().iterdir()
-                                 if p.is_file() and p.name.endswith(name) and '\\' in p.name]
-                  src=next((p for p in candidates if p.exists() and p.is_file()),None)
-                  if src:
-                      dst=out/name
-                      if src.resolve()!=dst.resolve():
-                          shutil.move(str(src),str(dst))
-                      moved+=1
-          print('Recovered GLBs:',moved)
-          PY
-          find "$RUNNER_TEMP/mapglb" -type f -name '*.glb' -printf '%s %p\n' | sort -nr > audit-out/glb-files.txt
-          echo "GLB count: $(wc -l < audit-out/glb-files.txt)"
-          test "$(wc -l < audit-out/glb-files.txt)" -eq 120
-
-      - name: Analyze geometry and render top-down vertex map
-        run: |
-          set -euo pipefail
-          python3 -m pip install --quiet trimesh numpy matplotlib
-          python3 - <<'PY'
-          import json, os, pathlib, random
-          import numpy as np
-          import trimesh
-          import matplotlib.pyplot as plt
-
-          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'mapglb'
-          files=sorted(root.rglob('*.glb'))
-          rows=[]; samples=[]
-          total_v=0; total_f=0
-          global_min=np.array([np.inf,np.inf,np.inf],dtype=float)
-          global_max=np.array([-np.inf,-np.inf,-np.inf],dtype=float)
-          for f in files:
-              try:
-                  obj=trimesh.load(f,force='scene')
-                  geoms=list(obj.geometry.values()) if isinstance(obj,trimesh.Scene) else [obj]
-                  nv=nf=0
-                  for g in geoms:
-                      v=np.asarray(g.vertices,dtype=float)
-                      if len(v)==0: continue
-                      nv+=len(v); nf+=len(g.faces)
-                      global_min=np.minimum(global_min,v.min(axis=0)); global_max=np.maximum(global_max,v.max(axis=0))
-                      step=max(1,len(v)//5000)
-                      samples.append(v[::step])
-                  total_v+=nv; total_f+=nf
-                  rows.append({'file':f.relative_to(root).as_posix(),'vertices':nv,'triangles':nf})
-              except Exception as e:
-                  rows.append({'file':f.relative_to(root).as_posix(),'error':repr(e)})
-          cloud=np.concatenate(samples,axis=0) if samples else np.empty((0,3))
+          import collections,json,pathlib,os
+          base=pathlib.Path(os.environ['RUNNER_TEMP'])/'umodel-export'
+          files=[p for p in base.rglob('*') if p.is_file()] if base.exists() else []
+          ext=collections.Counter((p.suffix.lower() or '<none>') for p in files)
+          total=sum(p.stat().st_size for p in files)
+          gltf=[p for p in files if p.suffix.lower()=='.gltf']
+          bins=[p for p in files if p.suffix.lower()=='.bin']
+          textures=[p for p in files if p.suffix.lower() in {'.tga','.png','.dds','.jpg','.jpeg'}]
           report={
-              'glb_count':len(files),
-              'vertices_total':int(total_v),
-              'triangles_total':int(total_f),
-              'vertex_bounds_min':global_min.tolist() if np.isfinite(global_min).all() else None,
-              'vertex_bounds_max':global_max.tolist() if np.isfinite(global_max).all() else None,
-              'vertex_span':(global_max-global_min).tolist() if np.isfinite(global_min).all() else None,
-              'meshes':rows,
+            'source':'Pavlov Workshop 2755515831 / CoD_nacht/MAP_FILES',
+            'engine_override':'ue4.21',
+            'export_file_count':len(files),
+            'export_total_bytes':total,
+            'extensions':dict(ext.most_common()),
+            'gltf_count':len(gltf),
+            'bin_count':len(bins),
+            'texture_count':len(textures),
+            'largest':[{'path':p.relative_to(base).as_posix(),'bytes':p.stat().st_size} for p in sorted(files,key=lambda x:-x.stat().st_size)[:200]],
           }
-          pathlib.Path('audit-out/mapfiles-geometry-report.json').write_text(json.dumps(report,indent=2)+'\n')
-          print(json.dumps({k:v for k,v in report.items() if k!='meshes'},indent=2))
-          if len(cloud):
-              fig,ax=plt.subplots(figsize=(10,10))
-              ax.scatter(cloud[:,0],cloud[:,1],s=0.15,alpha=0.35)
-              ax.set_aspect('equal','box')
-              ax.set_title('BO3 Nacht port — 120 zm_prototype MAP_FILES vertex projection')
-              ax.set_xlabel('X (Unreal units / cm)')
-              ax.set_ylabel('Y (Unreal units / cm)')
-              fig.tight_layout()
-              fig.savefig('audit-out/mapfiles-topdown.png',dpi=180)
-              plt.close(fig)
+          pathlib.Path('audit-out/gltf-export-report.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2)[:30000])
           PY
 
-      - name: Upload geometry audit only
+          cp "$RUNNER_TEMP/umodel-version.txt" audit-out/ || true
+
+      - name: Upload audit report only
         uses: actions/upload-artifact@v4
         with:
-          name: pavlov-bo3-nacht-mapfiles-geometry-audit
+          name: pavlov-bo3-nacht-mapfiles-gltf-audit
           path: audit-out/
-          if-no-files-found: error
           retention-days: 7
