@@ -1,0 +1,62 @@
+name: BO3 Dedicated Depot Direct Audit
+
+on:
+  push:
+    branches:
+      - experiment/bo3-nacht-workshop-audit
+    paths:
+      - ".github/workflows/bo3-dedicated-depot-audit.yml"
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Attempt direct depot download
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Continue'
+          $steam=Join-Path $env:RUNNER_TEMP 'steamcmd'
+          New-Item -ItemType Directory -Force -Path $steam | Out-Null
+          Invoke-WebRequest 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'steamcmd.zip')
+          Expand-Archive (Join-Path $env:RUNNER_TEMP 'steamcmd.zip') -DestinationPath $steam -Force
+          & (Join-Path $steam 'steamcmd.exe') +@sSteamCmdForcePlatformType windows +login anonymous +download_depot 545990 545991 +quit 2>&1 | Tee-Object depot.log
+          $rc=$LASTEXITCODE; $global:LASTEXITCODE=0
+          Write-Host "SteamCMD rc=$rc"
+          $cand=Get-ChildItem -Path $steam,$env:RUNNER_TEMP -Directory -Recurse -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match 'content\\app_545990\\depot_545991|steamapps\\content\\app_545990\\depot_545991' } | Select-Object -First 1
+          if ($cand) { "DEPOT_ROOT=$($cand.FullName)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8 }
+          else { "DEPOT_ROOT=" | Out-File $env:GITHUB_ENV -Append -Encoding utf8 }
+          exit 0
+
+      - name: Inventory result
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path audit-out | Out-Null
+          @'
+          import collections,json,os,pathlib
+          root_s=os.environ.get('DEPOT_ROOT','')
+          report={'app_id':545990,'depot_id':545991,'materialized':bool(root_s)}
+          if root_s:
+            root=pathlib.Path(root_s)
+            files=[p for p in root.rglob('*') if p.is_file()]
+            rows=[]
+            for p in files:
+              rel=p.relative_to(root).as_posix()
+              if p.suffix.lower() in {'.ff','.xpak','.sabs','.sabl','.zone','.bsp','.d3dbsp'} or any(k in rel.lower() for k in ('prototype','nacht','zm_','zombie')):
+                rows.append({'path':rel,'bytes':p.stat().st_size})
+            report.update({'file_count':len(files),'total_bytes':sum(p.stat().st_size for p in files),'interesting':rows,'prototype_hits':[x for x in rows if 'prototype' in x['path'].lower() or 'nacht' in x['path'].lower()]})
+          pathlib.Path('audit-out/report.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(report,indent=2)[:40000])
+          '@ | Set-Content audit-out/inventory.py -Encoding utf8
+          python audit-out/inventory.py
+          Copy-Item depot.log audit-out/depot.log -ErrorAction SilentlyContinue
+
+      - name: Upload report/log
+        uses: actions/upload-artifact@v4
+        with:
+          name: bo3-dedicated-depot-direct-audit
+          path: audit-out/
+          retention-days: 7
