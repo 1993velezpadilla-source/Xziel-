@@ -124,3 +124,29 @@ Examples of recovered texture channels include:
 - `i_t7_zm_chalk_buy_locus_c.tga`
 
 The third-party exported payload remains ephemeral and is not committed to this repository.
+
+
+## Pavlov MAP_FILES material-channel audit
+
+UE Viewer / UModel exported **84** material descriptors from the map-surface asset set.
+
+Resolved channel coverage in the community port:
+- Normal: **84 / 84**
+- Diffuse: **80 / 84**
+- SpecPower: **1 / 84**
+- direct Specular field: **0 / 84**
+- unique referenced textures: **132**
+
+Observed texture-name suffixes among resolved/auxiliary references:
+- `_c`: **83**
+- `_n`: **64**
+- `_s`: **1**
+
+This does **not** prove that Treyarch's original T7 material system only used diffuse + normal. It describes how the Pavlov UE4 port's cooked materials resolve through UModel. Several materials also expose additional textures through UModel's `Other[]` list, so XZIEL should not discard auxiliary maps blindly.
+
+Examples:
+- `t7_asphalt_old_dark` -> Diffuse `i_t7_asphalt_old_dark_c`, Normal `i_t7_asphalt_old_dark_n`
+- `t7_concrete_floor_broken_02` -> Diffuse `i_t7_concrete_floor_broken_02_c`, Normal `i_t7_concrete_floor_broken_02_n`
+- `t7_decal_grunge_oil_stain_wet_01` resolves `i_t7_decal_grunge_oil_stain_wet_01_s` as its Diffuse input in this port
+
+This is a critical warning for automated suffix-based mapping: channel semantics must come from the material descriptor when available, not filename suffix alone.
