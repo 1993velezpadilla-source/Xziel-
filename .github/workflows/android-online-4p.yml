@@ -217,8 +217,30 @@ jobs:
             LOCAL_SLOT="$(awk '/XzielOnline.*WELCOME/ { if (match($0, / slot=[1-4]/)) slot=substr($0, RSTART + 6, 1) } END { if (slot != "") print slot }' "$LOG")"
 
             SOUND_OK=1
+
+            # Player 2 walks long enough to emit native SSQC footsteps.
+            if [[ -n "$LOCAL_SLOT" && "$LOCAL_SLOT" != "2" ]]; then
+              if ! grep -q "XzielOnline.*CI_REMOTE_SOUND.*source=2.*sound=sounds/player/footstep" "$LOG"; then
+                SOUND_OK=0
+              fi
+            fi
+
+            # Player 3 primes/releases a real server grenade. All remote
+            # observers must hear the player-side grenade sound, and everybody
+            # must receive the eventual grenade explosion sound packet.
+            if [[ -n "$LOCAL_SLOT" && "$LOCAL_SLOT" != "3" ]]; then
+              if ! grep -Eq "XzielOnline.*CI_REMOTE_SOUND.*source=3.*sound=sounds/weapons/grenade/(prime|throw)\.wav" "$LOG"; then
+                SOUND_OK=0
+              fi
+            fi
+            if ! grep -q "XzielOnline.*CI_REMOTE_SOUND.*sound=sounds/weapons/grenade/explode.wav" "$LOG"; then
+              SOUND_OK=0
+            fi
+
+            # Player 4 fires after ADS. Remote observers must receive at least
+            # one weapon-family sound from that player entity.
             if [[ -n "$LOCAL_SLOT" && "$LOCAL_SLOT" != "4" ]]; then
-              if ! grep -q "XzielOnline.*CI_REMOTE_SOUND.*source=4" "$LOG"; then
+              if ! grep -q "XzielOnline.*CI_REMOTE_SOUND.*source=4.*sound=sounds/weapons/" "$LOG"; then
                 SOUND_OK=0
               fi
             fi
