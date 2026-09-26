@@ -3,10 +3,11 @@
   "poolId": "xziel_mystery_box_global_v1",
   "policy": "global_enabled_firearms",
   "catalog": "assets/weapons/xziel_weapon_catalog_v1.json",
+  "generated": true,
   "notes": [
-    "Every globally enabled firearm in the catalog is eligible for the XZIEL Mystery Box by default.",
+    "Every globally enabled firearm marked mysteryBoxEligible is included automatically.",
     "Map profiles may exclude entries later without deleting them from the global catalog.",
-    "A catalog entry still requires a native weapon binding before it can be spawned as a playable weapon."
+    "A catalog entry still requires a native weapon binding before playable spawning is possible."
   ],
   "weaponIds": [
     "ar_famas",
@@ -47,6 +48,6 @@
     "sniper_powerbolt"
   ],
   "validation": {
-    "expectedCount": 36
+    "generatedEligibleCount": 36
   }
 }
