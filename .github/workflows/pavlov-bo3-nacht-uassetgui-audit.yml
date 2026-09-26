@@ -9,6 +9,7 @@ on:
       - ".github/workflows/pavlov-bo3-nacht-uassetgui-audit.yml"
       - "tools/maps/extract_pavlov_nacht_layout.py"
       - "tools/maps/resolve_pavlov_nacht_purchase_slots.py"
+      - "tools/maps/build_xziel_nacht_reference_package.py"
 
 jobs:
   parse:
@@ -163,6 +164,13 @@ jobs:
           python -m pip install --disable-pip-version-check --quiet numpy trimesh
           python tools/maps/resolve_pavlov_nacht_purchase_slots.py audit-out/nacht-spatial-manifest.json audit-out/purchase-gltf audit-out/nacht-purchase-slots-resolved.json
           if($LASTEXITCODE -ne 0){throw "purchase slot resolver failed $LASTEXITCODE"}
+      - name: Build XZIEL Nacht reference package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Force -Path 'audit-out\xziel-reference-package' | Out-Null
+          python tools/maps/build_xziel_nacht_reference_package.py audit-out/nacht-spatial-manifest.json audit-out/nacht-purchase-slots-resolved.json audit-out/xziel-reference-package
+          if($LASTEXITCODE -ne 0){throw "XZIEL reference package preflight failed $LASTEXITCODE"}
       - name: Upload map JSON audit
         uses: actions/upload-artifact@v4
         with:
