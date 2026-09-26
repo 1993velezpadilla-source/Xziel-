@@ -1,0 +1,239 @@
+{
+  "schemaVersion": 1,
+  "poolId": "bo3_nacht_disorderly_combat_pool_v1",
+  "mapScope": "zm_prototype / Nacht der Untoten Zombies Chronicles",
+  "sourceAuthority": {
+    "primary": {
+      "repository": "shiversoftdev/t7-source",
+      "commit": "07cbfcd113fb5031dc717296f73b371478d4eb77",
+      "path": "scripts/zm/bgbs/_zm_bgb_disorderly_combat.gsc",
+      "blobSha": "1a8d0e5208b70d04d9cc4b79a77240d4f728405c"
+    },
+    "corroboration": [
+      {
+        "repository": "SyndiShanX/COD-GSC-Source",
+        "commit": "b8cce0ff15d27a1d12496f58708d814fef853de2",
+        "path": "BO3-GSC/zm/bgbs/_zm_bgb_disorderly_combat.gsc",
+        "blobSha": "b8a3f4c25816a97acd56a4aa1ebf243b04f09a85"
+      },
+      {
+        "repository": "oJumpy/t7-zm_scripts",
+        "commit": "f2ef6d9349da45d14352e748413226605bc6747d",
+        "path": "zm/bgbs/_zm_bgb_disorderly_combat.gsc",
+        "blobSha": "d2a88b5d63078f2b50a0e1e47e2f3d96ce567f7a"
+      }
+    ],
+    "prototype": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
+    "startWeaponEvidence": {
+      "repository": "ate47/bo3-source",
+      "path": "scripts/zm/zm_prototype.gsc",
+      "rule": "level.default_laststandpistol = pistol_m1911; level.start_weapon = level.default_laststandpistol"
+    }
+  },
+  "filterRule": {
+    "include": "registered level.zombie_weapons entries that are not melee, not grenade, not source-excluded, not wonder weapons, and not level.start_weapon",
+    "explicitSourceExclusions": [
+      "ar_marksman",
+      "launcher_standard",
+      "none",
+      "pistol_burst",
+      "pistol_c96",
+      "pistol_m1911",
+      "pistol_revolver38",
+      "sniper_fastbolt",
+      "sniper_powerbolt"
+    ],
+    "startWeapon": "pistol_m1911",
+    "wonderWeaponRule": "exclude when BO3 is_wonder_weapon/source runtime wonder check is true",
+    "equipmentRule": "exclude melee and grenade weapons"
+  },
+  "runtimeSemantics": {
+    "durationSeconds": 300,
+    "weaponIntervalSeconds": 10,
+    "warningSecondsBeforeSwitch": 5,
+    "selection": "randomize complete eligible array, walk sequentially, reshuffle after exhaustion, skip weapons player already has",
+    "preserveInitialPackAPunchState": true,
+    "preserveInitialAatState": true,
+    "disableWeaponCycling": true,
+    "disableOffhandWeapons": true,
+    "runtimeActivationRule": "Do not activate with a reduced readiness subset; the full 26-weapon eligible pool must be available to preserve BO3 probabilities and cycle semantics."
+  },
+  "counts": {
+    "prototypeRows": 41,
+    "eligible": 26,
+    "excluded": 15
+  },
+  "eligible": [
+    {
+      "weaponId": "pistol_standard"
+    },
+    {
+      "weaponId": "ar_accurate"
+    },
+    {
+      "weaponId": "ar_cqb"
+    },
+    {
+      "weaponId": "ar_damage"
+    },
+    {
+      "weaponId": "ar_longburst"
+    },
+    {
+      "weaponId": "ar_standard"
+    },
+    {
+      "weaponId": "ar_garand"
+    },
+    {
+      "weaponId": "ar_stg44"
+    },
+    {
+      "weaponId": "lmg_cqb"
+    },
+    {
+      "weaponId": "lmg_heavy"
+    },
+    {
+      "weaponId": "lmg_light"
+    },
+    {
+      "weaponId": "lmg_slowfire"
+    },
+    {
+      "weaponId": "pistol_fullauto"
+    },
+    {
+      "weaponId": "shotgun_fullauto"
+    },
+    {
+      "weaponId": "shotgun_precision"
+    },
+    {
+      "weaponId": "shotgun_pump"
+    },
+    {
+      "weaponId": "shotgun_semiauto"
+    },
+    {
+      "weaponId": "smg_burst"
+    },
+    {
+      "weaponId": "smg_capacity"
+    },
+    {
+      "weaponId": "smg_fastfire"
+    },
+    {
+      "weaponId": "smg_standard"
+    },
+    {
+      "weaponId": "smg_versatile"
+    },
+    {
+      "weaponId": "smg_mp40_1940"
+    },
+    {
+      "weaponId": "smg_sten"
+    },
+    {
+      "weaponId": "smg_ak74u"
+    },
+    {
+      "weaponId": "lmg_rpk"
+    }
+  ],
+  "excluded": [
+    {
+      "weaponId": "pistol_m1911",
+      "reasons": [
+        "explicit_source_exclusion",
+        "start_weapon"
+      ]
+    },
+    {
+      "weaponId": "cymbal_monkey",
+      "reasons": [
+        "melee_or_grenade"
+      ]
+    },
+    {
+      "weaponId": "cymbal_monkey_upgraded",
+      "reasons": [
+        "melee_or_grenade"
+      ]
+    },
+    {
+      "weaponId": "frag_grenade",
+      "reasons": [
+        "melee_or_grenade"
+      ]
+    },
+    {
+      "weaponId": "knife",
+      "reasons": [
+        "melee_or_grenade"
+      ]
+    },
+    {
+      "weaponId": "bowie_knife",
+      "reasons": [
+        "melee_or_grenade"
+      ]
+    },
+    {
+      "weaponId": "ray_gun",
+      "reasons": [
+        "wonder_weapon"
+      ]
+    },
+    {
+      "weaponId": "thundergun",
+      "reasons": [
+        "wonder_weapon"
+      ]
+    },
+    {
+      "weaponId": "ar_marksman",
+      "reasons": [
+        "explicit_source_exclusion"
+      ]
+    },
+    {
+      "weaponId": "pistol_burst",
+      "reasons": [
+        "explicit_source_exclusion"
+      ]
+    },
+    {
+      "weaponId": "launcher_standard",
+      "reasons": [
+        "explicit_source_exclusion"
+      ]
+    },
+    {
+      "weaponId": "sniper_fastbolt",
+      "reasons": [
+        "explicit_source_exclusion"
+      ]
+    },
+    {
+      "weaponId": "sniper_powerbolt",
+      "reasons": [
+        "explicit_source_exclusion"
+      ]
+    },
+    {
+      "weaponId": "hero_annihilator",
+      "reasons": [
+        "wonder_weapon"
+      ]
+    },
+    {
+      "weaponId": "raygun_mark2",
+      "reasons": [
+        "wonder_weapon"
+      ]
+    }
+  ]
+}
