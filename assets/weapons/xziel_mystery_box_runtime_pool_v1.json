@@ -1,0 +1,880 @@
+{
+  "schemaVersion": 1,
+  "poolId": "xziel_mystery_box_runtime_ready_v1",
+  "policy": "zero_broken_rewards",
+  "candidatePool": "assets/weapons/xziel_mystery_box_pool_v1.json",
+  "completionContract": "assets/nacht_reference/bo3_nacht_completion_contract_v1.json",
+  "weaponIdRegistry": "assets/weapons/xziel_weapon_id_registry_v1.json",
+  "requiredLanes": [
+    "source_stats",
+    "behavior_spec",
+    "native_gameplay",
+    "model",
+    "audio",
+    "recoil",
+    "spread",
+    "animations",
+    "penetration",
+    "android_exposure",
+    "regression_test"
+  ],
+  "candidateCount": 46,
+  "activeCount": 0,
+  "blockedCount": 46,
+  "active": [],
+  "blocked": [
+    {
+      "weaponId": "ar_accurate",
+      "displayName": "ICR-1",
+      "mboxToken": "xz_ar_accurate",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "ar_cqb",
+      "displayName": "HVK-30",
+      "mboxToken": "xz_ar_cqb",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "ar_damage",
+      "displayName": "Man-O-War",
+      "mboxToken": "xz_ar_damage",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "ar_famas",
+      "displayName": "FFAR",
+      "mboxToken": "xz_ar_famas",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "source_stats=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "ar_fastburst",
+      "displayName": "XR-2",
+      "mboxToken": "xz_ar_fastburst",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "source_stats=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "ar_garand",
+      "displayName": "MX Garand",
+      "mboxToken": "xz_ar_garand",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "source_stats=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "ar_longburst",
+      "displayName": "M8A7",
+      "mboxToken": "xz_ar_longburst",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "ar_marksman",
+      "displayName": "Sheiva",
+      "mboxToken": "xz_ar_marksman",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=cataloged",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "ar_standard",
+      "displayName": "KN-44",
+      "mboxToken": "xz_ar_standard",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=cataloged",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "ar_stg44",
+      "displayName": "STG-44",
+      "mboxToken": "xz_ar_stg44",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "source_stats=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "cymbal_monkey",
+      "displayName": "Cymbal Monkey",
+      "mboxToken": "xz_cymbal_monkey",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "source_stats=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "hero_annihilator",
+      "displayName": "Annihilator",
+      "mboxToken": "xz_hero_annihilator",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "source_stats=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "launcher_standard",
+      "displayName": "XM-53",
+      "mboxToken": "xz_launcher_standard",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "lmg_cqb",
+      "displayName": "Dingo",
+      "mboxToken": "xz_lmg_cqb",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "lmg_heavy",
+      "displayName": "48 Dredge",
+      "mboxToken": "xz_lmg_heavy",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "lmg_light",
+      "displayName": "BRM",
+      "mboxToken": "xz_lmg_light",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "lmg_rpk",
+      "displayName": "RPK",
+      "mboxToken": "xz_lmg_rpk",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "source_stats=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "lmg_slowfire",
+      "displayName": "Gorgon",
+      "mboxToken": "xz_lmg_slowfire",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "pistol_burst",
+      "displayName": "RK5",
+      "mboxToken": "xz_pistol_burst",
+      "reasons": [
+        "nativeBindingStatus=logic_only",
+        "behavior_spec=cataloged",
+        "native_gameplay=logic_only",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "pistol_energy",
+      "displayName": "Rift E9",
+      "mboxToken": "xz_pistol_energy",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "source_stats=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "pistol_fullauto",
+      "displayName": "L-CAR 9",
+      "mboxToken": "xz_pistol_fullauto",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "pistol_shotgun",
+      "displayName": "Marshal 16",
+      "mboxToken": "xz_pistol_shotgun",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "source_stats=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "pistol_standard",
+      "displayName": "MR6",
+      "mboxToken": "xz_pistol_standard",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "ray_gun",
+      "displayName": "Ray Gun",
+      "mboxToken": "xz_ray_gun",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "source_stats=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "raygun_mark2",
+      "displayName": "Ray Gun Mark II",
+      "mboxToken": "xz_raygun_mark2",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "source_stats=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "shotgun_energy",
+      "displayName": "Banshii",
+      "mboxToken": "xz_shotgun_energy",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "source_stats=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "shotgun_fullauto",
+      "displayName": "Haymaker 12",
+      "mboxToken": "xz_shotgun_fullauto",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "shotgun_precision",
+      "displayName": "Argus",
+      "mboxToken": "xz_shotgun_precision",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=cataloged",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "shotgun_pump",
+      "displayName": "KRM-262",
+      "mboxToken": "xz_shotgun_pump",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=cataloged",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "shotgun_semiauto",
+      "displayName": "205 Brecci",
+      "mboxToken": "xz_shotgun_semiauto",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "smg_ak74u",
+      "displayName": "AK-74u",
+      "mboxToken": "xz_smg_ak74u",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "source_stats=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "smg_burst",
+      "displayName": "Pharo",
+      "mboxToken": "xz_smg_burst",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=cataloged",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "smg_capacity",
+      "displayName": "Weevil",
+      "mboxToken": "xz_smg_capacity",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "smg_fastfire",
+      "displayName": "Vesper",
+      "mboxToken": "xz_smg_fastfire",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "smg_longrange",
+      "displayName": "Razorback",
+      "mboxToken": "xz_smg_longrange",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "source_stats=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "smg_mp40",
+      "displayName": "HG 40",
+      "mboxToken": "xz_smg_mp40",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "source_stats=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "smg_mp40_1940",
+      "displayName": "MP40",
+      "mboxToken": "xz_smg_mp40_1940",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "source_stats=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "smg_standard",
+      "displayName": "Kuda",
+      "mboxToken": "xz_smg_standard",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=cataloged",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "smg_sten",
+      "displayName": "Sten",
+      "mboxToken": "xz_smg_sten",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "source_stats=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "smg_versatile",
+      "displayName": "VMP",
+      "mboxToken": "xz_smg_versatile",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "sniper_chargeshot",
+      "displayName": "P-06",
+      "mboxToken": "xz_sniper_chargeshot",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "source_stats=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "sniper_fastbolt",
+      "displayName": "Locus",
+      "mboxToken": "xz_sniper_fastbolt",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=cataloged",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "sniper_fastsemi",
+      "displayName": "Drakon",
+      "mboxToken": "xz_sniper_fastsemi",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "sniper_powerbolt",
+      "displayName": "SVG-100",
+      "mboxToken": "xz_sniper_powerbolt",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "sniper_quickscope",
+      "displayName": "RSA Interdiction",
+      "mboxToken": "xz_sniper_quickscope",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "source_stats=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    },
+    {
+      "weaponId": "thundergun",
+      "displayName": "Thundergun",
+      "mboxToken": "xz_thundergun",
+      "reasons": [
+        "nativeBindingStatus=pending",
+        "source_stats=pending",
+        "behavior_spec=pending",
+        "native_gameplay=pending",
+        "model=pending",
+        "audio=pending",
+        "recoil=pending",
+        "spread=pending",
+        "animations=pending",
+        "penetration=pending",
+        "android_exposure=pending",
+        "regression_test=pending"
+      ]
+    }
+  ],
+  "notes": [
+    "Identity availability is not equivalent to runtime readiness.",
+    "Only active entries are emitted to the NZ:P .mb2 allow-list.",
+    "An empty active list is valid during development; the patched box must refuse purchase without charging the player."
+  ]
+}
