@@ -34,6 +34,7 @@ pap_path = root / "source/server/entities/pack_a_punch.qc"
 window_path = root / "source/server/entities/window.qc"
 last_stand_path = root / "source/server/player/last_stand.qc"
 weapon_core_path = root / "source/server/weapons/weapon_core.qc"
+damage_path = root / "source/server/damage.qc"
 
 custom = custom_path.read_text(encoding="utf-8")
 weapon_utils = weapon_utils_path.read_text(encoding="utf-8")
@@ -44,6 +45,7 @@ pap = pap_path.read_text(encoding="utf-8")
 window = window_path.read_text(encoding="utf-8")
 last_stand = last_stand_path.read_text(encoding="utf-8")
 weapon_core = weapon_core_path.read_text(encoding="utf-8")
+damage = damage_path.read_text(encoding="utf-8")
 
 if "// XZIEL_DEATH_MACHINE_STATE_FIELDS_BEGIN" not in custom:
     custom += r'''
@@ -104,6 +106,15 @@ float(entity player) XZIEL_DeathMachineBeginStateOnly =
     if (player == world || player.classname != "player" || player.downed)
         return false;
 
+    // BO3 refresh behavior: a second pickup while active raises remaining time
+    // back to 30 seconds if it had fallen below 30; it never shortens a longer
+    // override duration.
+    if (XZIEL_DeathMachineActive(player)) {
+        if (player.xziel_dm_until < time + XZIEL_DEATH_MACHINE_DURATION_SECONDS)
+            player.xziel_dm_until = time + XZIEL_DEATH_MACHINE_DURATION_SECONDS;
+        return true;
+    }
+
     player.xziel_dm_backup_weapon_id = player.weapons[0].weapon_id;
     player.xziel_dm_backup_magazine = player.weapons[0].weapon_magazine;
     player.xziel_dm_backup_magazine_left = player.weapons[0].weapon_magazine_left;
@@ -132,8 +143,31 @@ void(entity player) XZIEL_DeathMachineTick =
     if (player == world || !player.xziel_dm_active)
         return;
 
+    if (player.downed || player.health <= 0) {
+        XZIEL_DeathMachineClearState(player);
+        return;
+    }
+
     if (player.xziel_dm_until <= time)
         XZIEL_DeathMachineClearState(player);
+};
+
+// Exact BO3 source formula from _zm_powerup_weapon_minigun.gsc:
+// base damage + 34%-75% of the victim's CURRENT health for zombies/dogs.
+// The helper is dormant until the actual Death Machine weapon binding is used.
+float(entity victim, entity attacker, float base_damage) XZIEL_DeathMachineAdjustDamage =
+{
+    if (victim == world || attacker == world || attacker.classname != "player")
+        return base_damage;
+
+    if (attacker.weapons[0].weapon_id != W_XZ_SPECIAL_DEATH_MACHINE)
+        return base_damage;
+
+    if (victim.classname != "ai_zombie" && victim.classname != "ai_dog")
+        return base_damage;
+
+    float health_fraction = 0.34 + (random() * 0.41);
+    return base_damage + (victim.health * health_fraction);
 };
 // XZIEL_DEATH_MACHINE_STATE_RUNTIME_END
 '''
@@ -278,6 +312,17 @@ weapon_core = inject_once(
     "XZIEL_DEATH_MACHINE_SWITCH_CANCEL",
 )
 
+damage = inject_once(
+    damage,
+    '''void(entity victim, entity attacker, float damage, float d_style) DamageHandler = {
+''',
+    '''void(entity victim, entity attacker, float damage, float d_style) DamageHandler = {
+    // XZIEL_DEATH_MACHINE_DAMAGE_HOOK
+    damage = XZIEL_DeathMachineAdjustDamage(victim, attacker, damage);
+''',
+    "XZIEL_DEATH_MACHINE_DAMAGE_HOOK",
+)
+
 unique_markers = {
     "custom": (
         custom,
@@ -296,6 +341,7 @@ unique_markers = {
             "float(entity player) XZIEL_DeathMachineBeginStateOnly =",
             "void(entity player) XZIEL_DeathMachineCancelStateOnly =",
             "void(entity player) XZIEL_DeathMachineTick =",
+            "float(entity victim, entity attacker, float base_damage) XZIEL_DeathMachineAdjustDamage =",
         ],
     ),
     "wall": (wall, ["// XZIEL_DEATH_MACHINE_BLOCK_WALLBUY"]),
@@ -311,6 +357,7 @@ unique_markers = {
             "// XZIEL_DEATH_MACHINE_SWITCH_CANCEL",
         ],
     ),
+    "damage": (damage, ["// XZIEL_DEATH_MACHINE_DAMAGE_HOOK"]),
 }
 for file_name, (text_value, markers) in unique_markers.items():
     for marker in markers:
@@ -326,8 +373,9 @@ pap_path.write_text(pap, encoding="utf-8")
 window_path.write_text(window, encoding="utf-8")
 last_stand_path.write_text(last_stand, encoding="utf-8")
 weapon_core_path.write_text(weapon_core, encoding="utf-8")
+damage_path.write_text(damage, encoding="utf-8")
 
 print(
     "Applied XZIEL BO3 Death Machine state-only runtime: "
-    "30s timer, switch-cancel, purchase/barricade/revive gates."
+    "30s timer/refresh, down cleanup, switch-cancel, interaction gates, exact BO3 percent-health damage hook."
 )
