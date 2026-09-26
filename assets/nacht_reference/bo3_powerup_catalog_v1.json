@@ -79,17 +79,25 @@
       "displayName": "Death Machine",
       "nachtNaturalDrop": true,
       "gobblegumTriggerable": true,
-      "effectSpecStatus": "pending",
+      "effectSpecStatus": "verified",
       "runtimeStatus": "pending",
       "runtimePrimitive": {
-        "available": false,
-        "upstreamSymbol": null,
-        "xzielSemantic": "XZIEL_PU_DEATHMACHINE",
-        "bridgeStatus": "native_feature_required"
+        "status": "partial",
+        "stateTimer": "logic_ready",
+        "interactionRestrictions": "partial",
+        "pickupHook": "pending",
+        "firingRuntime": "pending",
+        "damageFormula": "pending"
       },
       "temporaryWeaponId": "special_death_machine",
       "weaponIdentityStatus": "cataloged",
-      "packAPunchEligible": false
+      "packAPunchEligible": false,
+      "effectSpec": {
+        "type": "temporary_weapon",
+        "temporaryWeaponId": "special_death_machine",
+        "durationSeconds": 30,
+        "packAPunchEligible": false
+      }
     },
     {
       "id": "fire_sale",
