@@ -213,10 +213,25 @@ jobs:
 
             REMOTE_SEEN="$(grep "XzielOnline.*CI_REMOTE_SEEN" "$LOG" | \
               sed -n 's/.* remote=\([1-4]\).*/\1/p' | sort -u | wc -l | tr -d ' ')"
-            VOICE_PLAY="$(grep -c "XzielVoice.*CI_VOICE_PLAY" "$LOG" || true)"
+            REMOTE_FRAMES="$(grep "XzielOnline.*CI_REMOTE_FRAME" "$LOG" | \
+              sed -n 's/.* remote=\([1-4]\).*/\1/p' | sort -u | wc -l | tr -d ' ')"
+            VOICE_SENDERS="$(grep "XzielVoice.*CI_VOICE_PLAY" "$LOG" | \
+              sed -n 's/.* sender=\([1-4]\).*/\1/p' | sort -u | wc -l | tr -d ' ')"
+            LOCAL_SLOT="$(grep "XzielOnline.*WELCOME" "$LOG" | \
+              sed -n 's/.* slot=\([1-4]\).*/\1/p' | tail -n 1)"
+
+            SOUND_OK=1
+            if [[ -n "$LOCAL_SLOT" && "$LOCAL_SLOT" != "4" ]]; then
+              if ! grep -q "XzielOnline.*CI_REMOTE_SOUND.*source=4" "$LOG"; then
+                SOUND_OK=0
+              fi
+            fi
 
             if grep -q "XzielOnline.*CI_SCENARIO_DONE" "$LOG" && \
-               [[ "$REMOTE_SEEN" -ge 2 ]] && [[ "$VOICE_PLAY" -ge 1 ]]; then
+               [[ "$REMOTE_SEEN" -ge 3 ]] && \
+               [[ "$REMOTE_FRAMES" -ge 2 ]] && \
+               [[ "$VOICE_SENDERS" -ge 3 ]] && \
+               [[ "$SOUND_OK" = "1" ]]; then
               SUCCESS=1
               break
             fi
