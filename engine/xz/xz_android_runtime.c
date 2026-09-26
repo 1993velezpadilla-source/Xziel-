@@ -20,6 +20,7 @@
 #include "xz_cutover.h"
 #include "xz_geometry_tap.h"
 #include "xz_texture_tap.h"
+#include "xz_map_runtime.h"
 
 #include <SDL.h>
 
@@ -54,6 +55,7 @@ typedef struct {
     XzActiveQualityState active_quality;
     XzStreamResidency stream_residency;
     XzCutoverState cutover;
+    XzMapRuntimeState map_runtime;
     uint64_t command_encode_failures;
     uint64_t graph_rebuild_failures;
     int graph_resources_ready;
@@ -1078,6 +1080,8 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
     XzGpuResourcePool_Init(
         &xz_runtime.gpu_resources);
 
+    XzMapRuntime_Init(&xz_runtime.map_runtime);
+
     xz_runtime.initialized = 1;
 
     XzAndroidLog(
@@ -1358,16 +1362,68 @@ void XzAndroidRuntime_BeginFrame(double now_seconds)
 
 void XzAndroidRuntime_NotifyWorldTransition(void)
 {
+    XzAndroidRuntime_NotifyWorldTransitionNamed(NULL);
+}
+
+void XzAndroidRuntime_NotifyWorldTransitionNamed(
+    const char *world_model_name)
+{
     if (!xz_runtime.initialized)
         return;
 
     xz_runtime.legacy_world_suppression_armed = 0;
     xz_runtime.legacy_world_transitions++;
 
+    XzMapRuntime_SetWorldModel(
+        &xz_runtime.map_runtime,
+        world_model_name);
+
     XzAndroidLog(
         ANDROID_LOG_INFO,
-        "legacy3d worldTransition count=%" PRIu64 " armed=0",
-        xz_runtime.legacy_world_transitions);
+        "legacy3d worldTransition count=%" PRIu64
+        " armed=0 map='%s' mapRuntime=%s generation=%" PRIu64,
+        xz_runtime.legacy_world_transitions,
+        XzMapRuntime_MapId(&xz_runtime.map_runtime),
+        XzMapRuntime_Kind(&xz_runtime.map_runtime) ==
+                XZ_MAP_RUNTIME_NACHT_BO3
+            ? "NACHT_BO3" : "NONE",
+        xz_runtime.map_runtime.generation);
+
+    if (XzMapRuntime_Kind(&xz_runtime.map_runtime) ==
+            XZ_MAP_RUNTIME_NACHT_BO3) {
+        const XzNachtGameplayState *nacht =
+            XzMapRuntime_NachtConst(
+                &xz_runtime.map_runtime);
+
+        XzAndroidLog(
+            ANDROID_LOG_INFO,
+            "nacht runtime active points=%u zones=0x%x spawns=%u"
+            " purchases=%u doors=%u barricades=%u",
+            nacht ? nacht->points : 0u,
+            nacht ? nacht->active_zone_mask : 0u,
+            nacht
+                ? (unsigned int)XzNacht_ActiveSpawnCount(nacht)
+                : 0u,
+            (unsigned int)XZ_NACHT_PURCHASE_COUNT,
+            (unsigned int)XZ_NACHT_DOOR_COUNT,
+            (unsigned int)XZ_NACHT_BARRICADE_COUNT);
+    }
+}
+
+int XzAndroidRuntime_ActiveMapIsNachtBo3(void)
+{
+    return xz_runtime.initialized &&
+        XzMapRuntime_Kind(&xz_runtime.map_runtime) ==
+            XZ_MAP_RUNTIME_NACHT_BO3;
+}
+
+const XzNachtGameplayState *XzAndroidRuntime_NachtState(void)
+{
+    if (!xz_runtime.initialized)
+        return NULL;
+
+    return XzMapRuntime_NachtConst(
+        &xz_runtime.map_runtime);
 }
 
 int XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(
