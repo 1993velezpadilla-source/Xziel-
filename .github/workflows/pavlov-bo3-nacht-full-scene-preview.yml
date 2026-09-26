@@ -36,15 +36,17 @@ jobs:
           $map=Get-ChildItem $out -Filter Nacht_de_Untoten.umap -Recurse | Select-Object -First 1
           if(-not $map){throw 'map missing'}
           Invoke-WebRequest 'https://github.com/atenfyr/UAssetGUI/releases/download/v1.1.0/UAssetGUI.exe' -OutFile (Join-Path $env:RUNNER_TEMP 'UAssetGUI.exe')
-          $audit=(New-Item -ItemType Directory -Force -Path 'audit-out').FullName
-          $json=Join-Path $audit 'Nacht_de_Untoten.json'
-          & (Join-Path $env:RUNNER_TEMP 'UAssetGUI.exe') tojson $map.FullName $json VER_UE4_21
+          New-Item -ItemType Directory -Force -Path 'audit-out' | Out-Null
+          & (Join-Path $env:RUNNER_TEMP 'UAssetGUI.exe') tojson $map.FullName 'audit-out\Nacht_de_Untoten.json' VER_UE4_21
           if($LASTEXITCODE -ne 0){throw 'UAssetGUI failed'}
-          if(-not(Test-Path $json)){throw "map JSON missing at $json"}
+          $json=Get-ChildItem $PWD,$env:RUNNER_TEMP -Recurse -File -Filter 'Nacht_de_Untoten.json' -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $json){throw 'map JSON not found after UAssetGUI export'}
+          Copy-Item $json.FullName 'audit-out\Nacht_de_Untoten.json' -Force
+          "MAP_JSON=$($json.FullName)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
       - name: Extract spatial manifest
         shell: pwsh
         run: |
-          python tools/maps/extract_pavlov_nacht_layout.py audit-out/Nacht_de_Untoten.json audit-out/nacht-spatial-manifest.json
+          python tools/maps/extract_pavlov_nacht_layout.py $env:MAP_JSON audit-out/nacht-spatial-manifest.json
           if($LASTEXITCODE -ne 0){throw 'spatial manifest failed'}
           python -c "import json; d=json.load(open('audit-out/nacht-spatial-manifest.json')); rows=[r for r in d['static_mesh_instances'] if r.get('actor_class')=='/Script/Engine/StaticMeshActor' and isinstance(r.get('mesh'),str) and '/CoD_nacht/' in r['mesh']]; names=sorted(set(r['mesh'].rsplit('/',1)[-1] for r in rows)); open('audit-out/used-mesh-names.txt','w').write('\\n'.join(names)+'\\n'); print('used instances',len(rows),'unique names',len(names)); assert len(names)==490"
       - uses: actions/upload-artifact@v4
