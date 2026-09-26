@@ -1,0 +1,28 @@
+name: XZIEL Runtime Promotion Gate CI
+
+on:
+  push:
+    branches:
+      - feature/xziel-runtime-promotion-gate-v1
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - name: Compile Python gate modules
+        run: |
+          set -euo pipefail
+          python3 -m py_compile \
+            tools/maps/xziel_runtime_manifest.py \
+            tools/maps/compile_xziel_map_package.py \
+            tools/maps/verify_xziel_map_package.py \
+            tests/test_xziel_xzp_package.py
+      - name: Test deterministic runtime-ready XZP
+        run: |
+          set -euo pipefail
+          python3 tests/test_xziel_xzp_package.py
