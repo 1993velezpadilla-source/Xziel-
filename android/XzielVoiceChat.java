@@ -199,8 +199,13 @@ public final class XzielVoiceChat {
     public void toggleSpeaker() {
         boolean muted = !speakerMuted.get();
         speakerMuted.set(muted);
-        for (AudioTrack track : remoteTracks.values()) {
-            try { track.setVolume(muted ? 0.0f : 1.0f); } catch (Exception ignored) {}
+        for (java.util.Map.Entry<Integer, AudioTrack> entry : remoteTracks.entrySet()) {
+            try {
+                boolean playerIsMuted = isPlayerMuted(entry.getKey());
+                entry.getValue().setVolume(
+                    muted || playerIsMuted ? 0.0f : 1.0f
+                );
+            } catch (Exception ignored) {}
         }
         refreshHudControls();
         refreshPausePanel();
