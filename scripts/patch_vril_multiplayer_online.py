@@ -124,6 +124,41 @@ if "char xziel_online_command[512]" not in text:
 host.write_text(text, encoding="utf-8")
 
 # ---------------------------------------------------------------------------
+# Cross-client game-audio evidence. The normal Vril sound packet is parsed and
+# played first; Android only receives metadata afterwards, so this hook cannot
+# synthesize or replace game audio.
+# ---------------------------------------------------------------------------
+cl_parse = source / "cl_parse.c"
+text = cl_parse.read_text(encoding="utf-8")
+
+cl_parse_include = '#include "nzportable_def.h"\n'
+cl_parse_decl = """#ifdef __ANDROID__
+extern void Xziel_Android_CiSoundEvent(int ent, int channel, const char *name,
+    float x, float y, float z);
+#endif
+"""
+if "Xziel_Android_CiSoundEvent" not in text:
+    text = replace_once(text, cl_parse_include, cl_parse_include + cl_parse_decl,
+                        "cl_parse CI sound declaration")
+
+sound_anchor = """    S_StartSound (ent, channel, cl.sound_precache[sound_num], pos, volume/255.0, attenuation);
+}"""
+sound_repl = """    S_StartSound (ent, channel, cl.sound_precache[sound_num], pos, volume/255.0, attenuation);
+#ifdef __ANDROID__
+    if (cl.sound_precache[sound_num]) {
+        Xziel_Android_CiSoundEvent(
+            ent, channel, cl.sound_precache[sound_num]->name,
+            pos[0], pos[1], pos[2]);
+    }
+#endif
+}"""
+if "Xziel_Android_CiSoundEvent(" not in text[text.find("void CL_ParseStartSoundPacket"):]:
+    text = replace_once(text, sound_anchor, sound_repl,
+                        "CL_ParseStartSoundPacket CI evidence hook")
+
+cl_parse.write_text(text, encoding="utf-8")
+
+# ---------------------------------------------------------------------------
 # Online pause menu: gameplay continues while the overlay is open. Reuse the
 # existing native scoreboard and expose only SETTINGS + QUIT MATCH. This runs
 # after patch_vril_android.py, so the replacement deliberately preserves the
