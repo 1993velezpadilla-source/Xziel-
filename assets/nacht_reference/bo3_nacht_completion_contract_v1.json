@@ -13,7 +13,9 @@
     "gobbleGumCatalog": "assets/nacht_reference/bo3_gobblegum_catalog_v1.json",
     "systemPlacements": "assets/nacht_reference/bo3_system_placements_v1.json",
     "perkCatalog": "assets/nacht_reference/bo3_perk_catalog_v1.json",
-    "powerupCatalog": "assets/nacht_reference/bo3_powerup_catalog_v1.json"
+    "powerupCatalog": "assets/nacht_reference/bo3_powerup_catalog_v1.json",
+    "weaponIdRegistry": "assets/weapons/xziel_weapon_id_registry_v1.json",
+    "mysteryBoxRuntimePool": "assets/weapons/xziel_mystery_box_runtime_pool_v1.json"
   },
   "baseline": {
     "catalogWeaponCount": 51,
@@ -32,7 +34,10 @@
     "canonicalPerkIdentityCount": 8,
     "wunderfizzPoolIdentityCount": 7,
     "corePowerupIdentityCount": 9,
-    "nachtNaturalPowerupIdentityCount": 6
+    "nachtNaturalPowerupIdentityCount": 6,
+    "weaponIdRegistryCount": 51,
+    "mysteryBoxCandidateCount": 46,
+    "mysteryBoxRuntimeCapacity": 64
   },
   "bo3ChroniclesFeatureReference": {
     "mysteryBox": true,
@@ -86,8 +91,15 @@
       "state": "partial"
     },
     "mystery_box_full_pool_and_teddy_flow": {
-      "state": "pending",
-      "anchorPlacements": 1
+      "state": "partial",
+      "anchorPlacements": 1,
+      "runtimeCapacity": 64,
+      "candidateWeaponIdentities": 46,
+      "runtimeReadyRewards": 0,
+      "rewardPolicy": "zero_broken_rewards",
+      "entityWired": true,
+      "emptyPoolBehavior": "deny_without_charge",
+      "remaining": "Activate each BO3 reward only after its gameplay/presentation lanes are complete, then validate weapon award and teddy flow on Android."
     },
     "gobblegum_machines_and_full_effect_runtime": {
       "state": "pending",
