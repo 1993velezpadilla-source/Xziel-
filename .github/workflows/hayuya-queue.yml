@@ -203,6 +203,42 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install "gradio_client>=1.10,<2" pillow numpy trimesh mediapipe "scipy>=1.11" "scikit-image>=0.22" "xatlas==0.0.11" "fast-simplification>=0.1.7"
 
+      - name: Restore latest TRELLIS.2 preview checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HAYUYA_OUTPUT_ROOT"
+          artifact_name="hayuya-job-$HAYUYA_JOB_ID"
+          rm -rf /tmp/hayuya-checkpoint
+          mkdir -p /tmp/hayuya-checkpoint
+          mapfile -t run_ids < <(
+            gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" --jq \
+              ".artifacts | map(select(.name == \"$artifact_name\" and .expired == false)) | sort_by(.created_at) | reverse | .[].workflow_run.id"
+          )
+          restored=false
+          for prior_run in "${run_ids[@]:-}"; do
+            rm -rf /tmp/hayuya-checkpoint/*
+            if ! gh run download "$prior_run" --repo "$GITHUB_REPOSITORY" -n "$artifact_name" -D /tmp/hayuya-checkpoint >/dev/null 2>&1; then
+              continue
+            fi
+            preview="$(find /tmp/hayuya-checkpoint -type f -name 'trellis2_candidate.preview.html' -print -quit)"
+            if [[ -n "$preview" && -s "$preview" ]]; then
+              cp "$preview" "$HAYUYA_OUTPUT_ROOT/trellis2_candidate.preview.html"
+              generation="$(find /tmp/hayuya-checkpoint -type f -name 'trellis2_candidate.generation.json' -print -quit)"
+              if [[ -n "$generation" && -s "$generation" ]]; then
+                cp "$generation" "$HAYUYA_OUTPUT_ROOT/trellis2_candidate.generation.json"
+              fi
+              echo "HAYUYA_TRELLIS2_CHECKPOINT_RESTORED prior_run=$prior_run bytes=$(wc -c < "$HAYUYA_OUTPUT_ROOT/trellis2_candidate.preview.html")"
+              restored=true
+              break
+            fi
+          done
+          if [[ "$restored" != true ]]; then
+            echo "HAYUYA_TRELLIS2_CHECKPOINT_NONE job=$HAYUYA_JOB_ID"
+          fi
+
       - name: Run phone-only Hayuya cloud job
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
