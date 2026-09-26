@@ -204,6 +204,22 @@ def main() -> int:
     if missing_powerups != ["death_machine", "fire_sale"]:
         fail(f"unexpected missing power-up primitives: {missing_powerups}")
 
+    xziel_logic_powerups = [
+        row for row in capability_powerups
+        if row.get("primitiveAvailable") is True or row.get("xzielLogicAvailable") is True
+    ]
+    missing_logic_powerups = sorted(
+        row["id"] for row in capability_powerups
+        if row.get("primitiveAvailable") is not True
+        and row.get("xzielLogicAvailable") is not True
+    )
+    if len(xziel_logic_powerups) != 8:
+        fail(f"expected 8 XZIEL power-up logic primitives, got {len(xziel_logic_powerups)}")
+    if baseline.get("xzielPowerupLogicPrimitiveCount") != len(xziel_logic_powerups):
+        fail("xzielPowerupLogicPrimitiveCount drift")
+    if missing_logic_powerups != ["death_machine"]:
+        fail(f"unexpected missing XZIEL power-up logic primitives: {missing_logic_powerups}")
+
     perk_cap_by_id = {row["id"]: row for row in capability_perks}
     for row in perk_entries:
         primitive = row.get("runtimePrimitive", {})
