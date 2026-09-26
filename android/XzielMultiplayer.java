@@ -1041,7 +1041,7 @@ public final class XzielMultiplayer {
             ciCommand(7200, "CI_SCENARIO_DONE", "");
         } else if (localSlot == 2) {
             ciCommand(700, "CI_P2_WALK_START", "+forward\n");
-            ciCommand(1250, "CI_P2_WALK_STOP", "-forward\n");
+            ciCommand(2200, "CI_P2_WALK_STOP", "-forward\n");
             ciCommand(3100, "CI_P2_AIM_START", "+aim\n");
             activity.getWindow().getDecorView().postDelayed(() -> {
                 if (ciEvidenceMode) voiceChat.sendCiTestTone();
