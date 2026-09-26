@@ -29,6 +29,22 @@ if "// XZIEL_GOBBLEGUM_PLAYER_STATE_BEGIN" not in custom:
     custom += r'''
 
 // XZIEL_GOBBLEGUM_PLAYER_STATE_BEGIN
+// Shared semantic power-up IDs live in defs because perk_a_cola.qc is compiled
+// before powerups.qc in upstream ssqc.src.
+#define XZIEL_PU_NUKE          1
+#define XZIEL_PU_INSTAKILL     2
+#define XZIEL_PU_DOUBLEPOINTS  3
+#define XZIEL_PU_CARPENTER     4
+#define XZIEL_PU_MAXAMMO       5
+#define XZIEL_PU_RANDOMPERK    6
+#define XZIEL_PU_BONUSPOINTS   7
+#define XZIEL_PU_FIRESALE      8
+#define XZIEL_PU_DEATHMACHINE  9
+
+// Forward declarations for the later-compiled powerups.qc bridge.
+float() XZIEL_FireSaleLogicActive;
+float(vector where, float semantic_id) XZIEL_SpawnCorePowerup;
+
 .float xziel_gum_round;
 .float xziel_gum_uses_this_round;
 .float xziel_gum_bag_mask;
@@ -46,16 +62,8 @@ if power_marker not in power:
     power += r'''
 
 // XZIEL_ZOMBIES_POWERUP_BRIDGE_BEGIN
-// Stable semantic IDs owned by XZIEL, not by upstream NZ:P.
-#define XZIEL_PU_NUKE          1
-#define XZIEL_PU_INSTAKILL     2
-#define XZIEL_PU_DOUBLEPOINTS  3
-#define XZIEL_PU_CARPENTER     4
-#define XZIEL_PU_MAXAMMO       5
-#define XZIEL_PU_RANDOMPERK     6
-#define XZIEL_PU_BONUSPOINTS   7
-#define XZIEL_PU_FIRESALE      8
-#define XZIEL_PU_DEATHMACHINE  9
+// Stable semantic IDs are declared in defs/custom.qc so earlier-compiled
+// perk/GobbleGum code can reference them safely.
 
 float(float semantic_id) XZIEL_CorePowerupSupported =
 {
@@ -322,8 +330,11 @@ float(entity player) XZIEL_GobbleGumCurrentPrice =
         price = XZIEL_GobbleGumSecondUseBasePrice(rounds) * 2;
 
     // BO3 Fire Sale reduces GobbleGum machine prices by 490, clamped at zero.
-    if (XZIEL_FireSaleLogicActive())
-        price = max(0, price - 490);
+    if (XZIEL_FireSaleLogicActive()) {
+        price -= 490;
+        if (price < 0)
+            price = 0;
+    }
 
     return price;
 };
@@ -436,7 +447,10 @@ float(entity player) XZIEL_GobbleGumRollIdentity =
 float(entity player) XZIEL_GobbleGumRollsRemaining =
 {
     XZIEL_GobbleGumSyncRound(player);
-    return max(0, XZIEL_GOBBLEGUM_MAX_ROLLS - player.xziel_gum_uses_this_round);
+    float remaining = XZIEL_GOBBLEGUM_MAX_ROLLS - player.xziel_gum_uses_this_round;
+    if (remaining < 0)
+        remaining = 0;
+    return remaining;
 };
 
 // First BO3 GobbleGum effect primitives that map directly to existing
