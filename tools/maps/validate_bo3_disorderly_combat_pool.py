@@ -58,6 +58,20 @@ PRIMARY = {
     "path": "scripts/zm/bgbs/_zm_bgb_disorderly_combat.gsc",
     "blobSha": "1a8d0e5208b70d04d9cc4b79a77240d4f728405c",
 }
+EXPECTED_START = {
+    "repository": "ate47/bo3-source",
+    "ref": "main",
+    "path": "scripts/zm/zm_prototype.gsc",
+    "blobSha": "f23c1f739a30f4922c3851527a93ce1f0fc593a5",
+    "rule": (
+        "level.default_laststandpistol = pistol_m1911; "
+        "level.start_weapon = level.default_laststandpistol"
+    ),
+}
+EXPECTED_CORROBORATION_BLOBS = {
+    "b8a3f4c25816a97acd56a4aa1ebf243b04f09a85",
+    "d2a88b5d63078f2b50a0e1e47e2f3d96ce567f7a",
+}
 
 
 def fail(message: str) -> None:
@@ -82,21 +96,49 @@ def main() -> int:
     if primary != PRIMARY:
         fail(f"primary source drift: {primary!r}")
 
+    source_authority = pool.get("sourceAuthority", {})
+    start_source = source_authority.get("startWeaponEvidence", {})
+    if start_source != EXPECTED_START:
+        fail(f"start weapon source drift: {start_source!r}")
+
+    corroboration = source_authority.get("corroboration", [])
+    corroboration_blobs = {row.get("blobSha") for row in corroboration}
+    if not EXPECTED_CORROBORATION_BLOBS.issubset(corroboration_blobs):
+        fail(
+            "missing Disorderly corroboration blobs: "
+            f"{sorted(EXPECTED_CORROBORATION_BLOBS-corroboration_blobs)}"
+        )
+
     filter_rule = pool.get("filterRule", {})
     if filter_rule.get("explicitSourceExclusions") != EXPECTED_EXPLICIT:
         fail("explicit source exclusion list drift")
     if filter_rule.get("startWeapon") != "pistol_m1911":
         fail("Nacht Disorderly start weapon must remain pistol_m1911")
+    if filter_rule.get("prototypeEligibleBeforeStartWeaponExclusion") != 27:
+        fail("Disorderly pre-start-weapon eligible count drift")
+    if filter_rule.get("finalEligibleAfterStartWeaponExclusion") != 26:
+        fail("Disorderly final eligible count drift")
+    if "MR6/pistol_standard remains eligible" not in filter_rule.get("note", ""):
+        fail("MR6 eligibility clarification lost")
 
     semantics = pool.get("runtimeSemantics", {})
     expected_semantics = {
         "durationSeconds": 300,
         "weaponIntervalSeconds": 10,
         "warningSecondsBeforeSwitch": 5,
+        "selection": (
+            "randomize complete eligible array, walk sequentially, "
+            "reshuffle after exhaustion, skip weapons player already has"
+        ),
         "preserveInitialPackAPunchState": True,
         "preserveInitialAatState": True,
         "disableWeaponCycling": True,
         "disableOffhandWeapons": True,
+        "runtimeActivationRule": (
+            "Do not activate with a reduced readiness subset; the full 26-weapon "
+            "eligible pool must be available to preserve BO3 probabilities and "
+            "cycle semantics."
+        ),
     }
     for key, value in expected_semantics.items():
         if semantics.get(key) != value:
@@ -107,6 +149,10 @@ def main() -> int:
         fail(f"eligible pool drift: {eligible}")
     if len(eligible) != len(set(eligible)):
         fail("eligible pool contains duplicates")
+    if "pistol_standard" not in eligible:
+        fail("MR6/pistol_standard must remain eligible on Nacht")
+    if "pistol_m1911" in eligible:
+        fail("M1911 must remain excluded as Nacht start weapon")
 
     excluded_rows = pool.get("excluded", [])
     excluded = [row.get("weaponId") for row in excluded_rows]
