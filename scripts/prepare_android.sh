@@ -61,6 +61,7 @@ python3 "$ROOT/scripts/patch_quakec_xziel_gobblegum_pap_events.py" "$DEPS/quakec
 python3 "$ROOT/scripts/patch_quakec_xziel_death_machine_state.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_xziel_gobblegum_ephemeral.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_xziel_gobblegum_disorderly.py" "$DEPS/quakec"
+python3 "$ROOT/scripts/patch_quakec_xziel_gobblegum_disorderly_runtime.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_xziel_rk5_logic.py" "$DEPS/quakec"
 chmod +x "$DEPS/quakec/bin/fteqcc-cli-lin" "$DEPS/quakec/tools/qc-compiler-gnu.sh"
 (
