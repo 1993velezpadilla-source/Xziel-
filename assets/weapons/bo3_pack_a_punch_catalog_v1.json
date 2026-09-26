@@ -25,7 +25,8 @@
     "attachments": "Attachment selection is independent of upgrade identity. Current source dump exposes exact attachmentmappingstable rows for a subset only.",
     "repeatedPackAPunch": "can_upgrade_weapon() may allow an already-upgraded weapon only when attachment swapping is enabled and the weapon supports attachments.",
     "aat": "weapon_supports_aat() requires an upgraded weapon and rejects AAT-exempt weapons.",
-    "safetyRule": "Do not synthesize upgraded ballistic damage/ammo from base weapon values. Keep gameplay stats pending until source-backed values are recovered."
+    "safetyRule": "Do not synthesize upgraded ballistic damage/ammo from base weapon values. Keep gameplay stats pending until source-backed values are recovered.",
+    "nativeIdentityRegistry": "35 dedicated IDs in reserved PaP range plus existing cymbal_monkey_upgraded catalog ID; registry reservation does not imply gameplay readiness."
   },
   "counts": {
     "upgradeIdentities": 36,
@@ -33,7 +34,9 @@
     "attachmentMappingRows": 26,
     "specialEvidenceVariants": 6,
     "ballisticUpgradeStatsReady": 0,
-    "nativeRuntimeReady": 0
+    "nativeRuntimeReady": 0,
+    "dedicatedNativeUpgradeIds": 35,
+    "reusedCatalogUpgradeIds": 1
   },
   "variants": [
     {
@@ -99,7 +102,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 160,
+        "quakecDefine": "W_XZ_PAP_PISTOL_STANDARD_UPGRADED",
+        "mboxToken": "xz_pap_pistol_standard_upgraded"
+      }
     },
     {
       "baseWeaponId": "pistol_m1911",
@@ -164,7 +173,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 161,
+        "quakecDefine": "W_XZ_PAP_PISTOL_M1911_UPGRADED",
+        "mboxToken": "xz_pap_pistol_m1911_upgraded"
+      }
     },
     {
       "baseWeaponId": "cymbal_monkey",
@@ -216,7 +231,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "reused_catalog_identity",
+        "quakecId": 92,
+        "quakecDefine": "W_XZ_CYMBAL_MONKEY_UPGRADED",
+        "mboxToken": "xz_cymbal_monkey_upgraded"
+      }
     },
     {
       "baseWeaponId": "ray_gun",
@@ -268,7 +289,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 162,
+        "quakecDefine": "W_XZ_PAP_RAY_GUN_UPGRADED",
+        "mboxToken": "xz_pap_ray_gun_upgraded"
+      }
     },
     {
       "baseWeaponId": "thundergun",
@@ -316,7 +343,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 163,
+        "quakecDefine": "W_XZ_PAP_THUNDERGUN_UPGRADED",
+        "mboxToken": "xz_pap_thundergun_upgraded"
+      }
     },
     {
       "baseWeaponId": "ar_accurate",
@@ -402,7 +435,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 164,
+        "quakecDefine": "W_XZ_PAP_AR_ACCURATE_UPGRADED",
+        "mboxToken": "xz_pap_ar_accurate_upgraded"
+      }
     },
     {
       "baseWeaponId": "ar_cqb",
@@ -488,7 +527,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 165,
+        "quakecDefine": "W_XZ_PAP_AR_CQB_UPGRADED",
+        "mboxToken": "xz_pap_ar_cqb_upgraded"
+      }
     },
     {
       "baseWeaponId": "ar_damage",
@@ -574,7 +619,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 166,
+        "quakecDefine": "W_XZ_PAP_AR_DAMAGE_UPGRADED",
+        "mboxToken": "xz_pap_ar_damage_upgraded"
+      }
     },
     {
       "baseWeaponId": "ar_longburst",
@@ -660,7 +711,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 167,
+        "quakecDefine": "W_XZ_PAP_AR_LONGBURST_UPGRADED",
+        "mboxToken": "xz_pap_ar_longburst_upgraded"
+      }
     },
     {
       "baseWeaponId": "ar_marksman",
@@ -746,7 +803,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 168,
+        "quakecDefine": "W_XZ_PAP_AR_MARKSMAN_UPGRADED",
+        "mboxToken": "xz_pap_ar_marksman_upgraded"
+      }
     },
     {
       "baseWeaponId": "ar_standard",
@@ -832,7 +895,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 169,
+        "quakecDefine": "W_XZ_PAP_AR_STANDARD_UPGRADED",
+        "mboxToken": "xz_pap_ar_standard_upgraded"
+      }
     },
     {
       "baseWeaponId": "ar_garand",
@@ -918,7 +987,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 170,
+        "quakecDefine": "W_XZ_PAP_AR_GARAND_UPGRADED",
+        "mboxToken": "xz_pap_ar_garand_upgraded"
+      }
     },
     {
       "baseWeaponId": "ar_stg44",
@@ -966,7 +1041,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 171,
+        "quakecDefine": "W_XZ_PAP_AR_STG44_UPGRADED",
+        "mboxToken": "xz_pap_ar_stg44_upgraded"
+      }
     },
     {
       "baseWeaponId": "lmg_cqb",
@@ -1050,7 +1131,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 172,
+        "quakecDefine": "W_XZ_PAP_LMG_CQB_UPGRADED",
+        "mboxToken": "xz_pap_lmg_cqb_upgraded"
+      }
     },
     {
       "baseWeaponId": "lmg_heavy",
@@ -1134,7 +1221,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 173,
+        "quakecDefine": "W_XZ_PAP_LMG_HEAVY_UPGRADED",
+        "mboxToken": "xz_pap_lmg_heavy_upgraded"
+      }
     },
     {
       "baseWeaponId": "lmg_light",
@@ -1218,7 +1311,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 174,
+        "quakecDefine": "W_XZ_PAP_LMG_LIGHT_UPGRADED",
+        "mboxToken": "xz_pap_lmg_light_upgraded"
+      }
     },
     {
       "baseWeaponId": "lmg_slowfire",
@@ -1302,7 +1401,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 175,
+        "quakecDefine": "W_XZ_PAP_LMG_SLOWFIRE_UPGRADED",
+        "mboxToken": "xz_pap_lmg_slowfire_upgraded"
+      }
     },
     {
       "baseWeaponId": "pistol_burst",
@@ -1382,7 +1487,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 176,
+        "quakecDefine": "W_XZ_PAP_PISTOL_BURST_UPGRADED",
+        "mboxToken": "xz_pap_pistol_burst_upgraded"
+      }
     },
     {
       "baseWeaponId": "pistol_fullauto",
@@ -1462,7 +1573,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 177,
+        "quakecDefine": "W_XZ_PAP_PISTOL_FULLAUTO_UPGRADED",
+        "mboxToken": "xz_pap_pistol_fullauto_upgraded"
+      }
     },
     {
       "baseWeaponId": "shotgun_fullauto",
@@ -1542,7 +1659,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 178,
+        "quakecDefine": "W_XZ_PAP_SHOTGUN_FULLAUTO_UPGRADED",
+        "mboxToken": "xz_pap_shotgun_fullauto_upgraded"
+      }
     },
     {
       "baseWeaponId": "shotgun_precision",
@@ -1622,7 +1745,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 179,
+        "quakecDefine": "W_XZ_PAP_SHOTGUN_PRECISION_UPGRADED",
+        "mboxToken": "xz_pap_shotgun_precision_upgraded"
+      }
     },
     {
       "baseWeaponId": "shotgun_pump",
@@ -1702,7 +1831,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 180,
+        "quakecDefine": "W_XZ_PAP_SHOTGUN_PUMP_UPGRADED",
+        "mboxToken": "xz_pap_shotgun_pump_upgraded"
+      }
     },
     {
       "baseWeaponId": "shotgun_semiauto",
@@ -1782,7 +1917,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 181,
+        "quakecDefine": "W_XZ_PAP_SHOTGUN_SEMIAUTO_UPGRADED",
+        "mboxToken": "xz_pap_shotgun_semiauto_upgraded"
+      }
     },
     {
       "baseWeaponId": "launcher_standard",
@@ -1847,7 +1988,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 182,
+        "quakecDefine": "W_XZ_PAP_LAUNCHER_STANDARD_UPGRADED",
+        "mboxToken": "xz_pap_launcher_standard_upgraded"
+      }
     },
     {
       "baseWeaponId": "smg_burst",
@@ -1931,7 +2078,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 183,
+        "quakecDefine": "W_XZ_PAP_SMG_BURST_UPGRADED",
+        "mboxToken": "xz_pap_smg_burst_upgraded"
+      }
     },
     {
       "baseWeaponId": "smg_capacity",
@@ -2015,7 +2168,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 184,
+        "quakecDefine": "W_XZ_PAP_SMG_CAPACITY_UPGRADED",
+        "mboxToken": "xz_pap_smg_capacity_upgraded"
+      }
     },
     {
       "baseWeaponId": "smg_fastfire",
@@ -2099,7 +2258,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 185,
+        "quakecDefine": "W_XZ_PAP_SMG_FASTFIRE_UPGRADED",
+        "mboxToken": "xz_pap_smg_fastfire_upgraded"
+      }
     },
     {
       "baseWeaponId": "smg_standard",
@@ -2183,7 +2348,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 186,
+        "quakecDefine": "W_XZ_PAP_SMG_STANDARD_UPGRADED",
+        "mboxToken": "xz_pap_smg_standard_upgraded"
+      }
     },
     {
       "baseWeaponId": "smg_versatile",
@@ -2267,7 +2438,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 187,
+        "quakecDefine": "W_XZ_PAP_SMG_VERSATILE_UPGRADED",
+        "mboxToken": "xz_pap_smg_versatile_upgraded"
+      }
     },
     {
       "baseWeaponId": "smg_mp40_1940",
@@ -2315,7 +2492,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 188,
+        "quakecDefine": "W_XZ_PAP_SMG_MP40_1940_UPGRADED",
+        "mboxToken": "xz_pap_smg_mp40_1940_upgraded"
+      }
     },
     {
       "baseWeaponId": "smg_sten",
@@ -2380,7 +2563,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 189,
+        "quakecDefine": "W_XZ_PAP_SMG_STEN_UPGRADED",
+        "mboxToken": "xz_pap_smg_sten_upgraded"
+      }
     },
     {
       "baseWeaponId": "smg_ak74u",
@@ -2466,7 +2655,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 190,
+        "quakecDefine": "W_XZ_PAP_SMG_AK74U_UPGRADED",
+        "mboxToken": "xz_pap_smg_ak74u_upgraded"
+      }
     },
     {
       "baseWeaponId": "sniper_fastbolt",
@@ -2546,7 +2741,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 191,
+        "quakecDefine": "W_XZ_PAP_SNIPER_FASTBOLT_UPGRADED",
+        "mboxToken": "xz_pap_sniper_fastbolt_upgraded"
+      }
     },
     {
       "baseWeaponId": "sniper_powerbolt",
@@ -2626,7 +2827,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 192,
+        "quakecDefine": "W_XZ_PAP_SNIPER_POWERBOLT_UPGRADED",
+        "mboxToken": "xz_pap_sniper_powerbolt_upgraded"
+      }
     },
     {
       "baseWeaponId": "raygun_mark2",
@@ -2678,7 +2885,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 193,
+        "quakecDefine": "W_XZ_PAP_RAYGUN_MARK2_UPGRADED",
+        "mboxToken": "xz_pap_raygun_mark2_upgraded"
+      }
     },
     {
       "baseWeaponId": "lmg_rpk",
@@ -2764,7 +2977,13 @@
         "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
         "native_pack_a_punch_runtime_pending",
         "model_audio_animation_parity_pending"
-      ]
+      ],
+      "nativeIdentityRegistry": {
+        "mode": "dedicated_pack_a_punch_id",
+        "quakecId": 194,
+        "quakecDefine": "W_XZ_PAP_LMG_RPK_UPGRADED",
+        "mboxToken": "xz_pap_lmg_rpk_upgraded"
+      }
     }
   ]
 }
