@@ -124,6 +124,8 @@ init_block = (
     '\tHost_Init(&parms);\n'
     '#ifdef __ANDROID__\n'
     '\tXzAndroidRuntime_Init(heap_size);\n'
+    '\tXzAndroidRuntime_SetVerifiedMapPackageMode(\n'
+    '\t\tCOM_CheckParm("-xzielstrictassets") != 0);\n'
     '\tXzVrilBridge_Init();\n'
     '#endif\n'
 )
@@ -1304,6 +1306,7 @@ checks = {
     "runtime header": '#include "xz_android_runtime.h"',
     "bridge header": '#include "xz_vril_bridge.h"',
     "init": "XzAndroidRuntime_Init(heap_size);",
+    "package promotion": "XzAndroidRuntime_SetVerifiedMapPackageMode(",
     "texture init": "XzTextureTap_Init();",
     "bridge init": "XzVrilBridge_Init();",
     "begin": "XzAndroidRuntime_BeginFrame(now);",

@@ -10,6 +10,7 @@ extern "C" {
 #endif
 
 void XzAndroidRuntime_Init(size_t engine_heap_bytes);
+void XzAndroidRuntime_SetVerifiedMapPackageMode(int enabled);
 typedef enum {
     XZ_LEGACY_DRAW_ALIAS = 0,
     XZ_LEGACY_DRAW_SURFACE,
@@ -24,6 +25,7 @@ void XzAndroidRuntime_BeginFrame(double now_seconds);
 void XzAndroidRuntime_NotifyWorldTransition(void);
 void XzAndroidRuntime_NotifyWorldTransitionNamed(
     const char *world_model_name);
+int XzAndroidRuntime_ActiveMapIsVerifiedPackage(void);
 int XzAndroidRuntime_ActiveMapIsNachtBo3(void);
 const XzNachtGameplayState *XzAndroidRuntime_NachtState(void);
 int XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(

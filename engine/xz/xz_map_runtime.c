@@ -49,18 +49,23 @@ static void XzMapRuntime_CopyMapId(
 }
 
 static XzMapRuntimeKind XzMapRuntime_Classify(
-    const char *map_id)
+    const char *map_id,
+    int verified_package_mode)
 {
     if (!map_id || !map_id[0])
         return XZ_MAP_RUNTIME_NONE;
 
     /*
-     * Deliberately DO NOT treat stock "ndu" as the new BO3 reference.
-     * That is the old NZ:P/Quake Nacht map and must remain isolated.
+     * Nacht remains the golden-reference module even when bundled directly
+     * into CI. All other map identities become XZIEL runtime maps only after
+     * the Android package installer has verified and promoted their .xzp.
      */
     if (strcmp(map_id, "xziel_nacht_bo3") == 0 ||
         strcmp(map_id, "bo3_nacht_reference") == 0)
         return XZ_MAP_RUNTIME_NACHT_BO3;
+
+    if (verified_package_mode)
+        return XZ_MAP_RUNTIME_XZIEL_PACKAGE;
 
     return XZ_MAP_RUNTIME_NONE;
 }
@@ -91,7 +96,9 @@ void XzMapRuntime_SetWorldModel(
         sizeof(next_id),
         world_model_name);
 
-    next_kind = XzMapRuntime_Classify(next_id);
+    next_kind = XzMapRuntime_Classify(
+        next_id,
+        state->verified_package_mode);
 
     memset(state->map_id, 0, sizeof(state->map_id));
     memcpy(
@@ -116,10 +123,43 @@ void XzMapRuntime_SetWorldModel(
     XzNacht_Reset(&state->nacht);
 }
 
+void XzMapRuntime_SetVerifiedPackageMode(
+    XzMapRuntimeState *state,
+    int enabled)
+{
+    if (!state)
+        return;
+
+    state->verified_package_mode = enabled ? 1 : 0;
+    state->kind = XzMapRuntime_Classify(
+        state->map_id,
+        state->verified_package_mode);
+}
+
+int XzMapRuntime_IsVerifiedPackage(
+    const XzMapRuntimeState *state)
+{
+    return state ? state->verified_package_mode : 0;
+}
+
 XzMapRuntimeKind XzMapRuntime_Kind(
     const XzMapRuntimeState *state)
 {
     return state ? state->kind : XZ_MAP_RUNTIME_NONE;
+}
+
+const char *XzMapRuntime_KindName(
+    XzMapRuntimeKind kind)
+{
+    switch (kind) {
+    case XZ_MAP_RUNTIME_XZIEL_PACKAGE:
+        return "XZIEL_PACKAGE";
+    case XZ_MAP_RUNTIME_NACHT_BO3:
+        return "NACHT_BO3";
+    case XZ_MAP_RUNTIME_NONE:
+    default:
+        return "NONE";
+    }
 }
 
 const char *XzMapRuntime_MapId(
@@ -412,6 +452,30 @@ int XzMapRuntime_SelfTest(void)
     if (state.kind != XZ_MAP_RUNTIME_NONE ||
         strcmp(state.map_id, "ndu") != 0 ||
         XzMapRuntime_Nacht(&state) != NULL)
+        return 0;
+
+    /*
+     * Arbitrary maps do not become trusted XZIEL runtimes by filename.
+     * Package verification is an explicit promotion signal.
+     */
+    XzMapRuntime_SetWorldModel(
+        &state,
+        "maps/community_test.bsp");
+    if (state.kind != XZ_MAP_RUNTIME_NONE ||
+        XzMapRuntime_IsVerifiedPackage(&state) != 0)
+        return 0;
+
+    XzMapRuntime_SetVerifiedPackageMode(&state, 1);
+    if (state.kind != XZ_MAP_RUNTIME_XZIEL_PACKAGE ||
+        XzMapRuntime_IsVerifiedPackage(&state) != 1 ||
+        strcmp(
+            XzMapRuntime_KindName(state.kind),
+            "XZIEL_PACKAGE") != 0 ||
+        XzMapRuntime_Nacht(&state) != NULL)
+        return 0;
+
+    XzMapRuntime_SetVerifiedPackageMode(&state, 0);
+    if (state.kind != XZ_MAP_RUNTIME_NONE)
         return 0;
 
     generation = state.generation;

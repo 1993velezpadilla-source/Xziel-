@@ -26,6 +26,26 @@ int main(void)
 
     XzMapRuntime_SetWorldModel(
         &state,
+        "maps/community_test.bsp");
+    assert(XzMapRuntime_Kind(&state) == XZ_MAP_RUNTIME_NONE);
+    assert(XzMapRuntime_IsVerifiedPackage(&state) == 0);
+
+    XzMapRuntime_SetVerifiedPackageMode(&state, 1);
+    assert(XzMapRuntime_IsVerifiedPackage(&state) == 1);
+    assert(
+        XzMapRuntime_Kind(&state) ==
+        XZ_MAP_RUNTIME_XZIEL_PACKAGE);
+    assert(
+        strcmp(
+            XzMapRuntime_KindName(XzMapRuntime_Kind(&state)),
+            "XZIEL_PACKAGE") == 0);
+    assert(XzMapRuntime_Nacht(&state) == 0);
+
+    XzMapRuntime_SetVerifiedPackageMode(&state, 0);
+    assert(XzMapRuntime_Kind(&state) == XZ_MAP_RUNTIME_NONE);
+
+    XzMapRuntime_SetWorldModel(
+        &state,
         "maps/xziel_nacht_bo3.bsp");
 
     assert(XzMapRuntime_Kind(&state) == XZ_MAP_RUNTIME_NACHT_BO3);

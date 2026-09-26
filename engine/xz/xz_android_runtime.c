@@ -1343,6 +1343,24 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
     }
 }
 
+void XzAndroidRuntime_SetVerifiedMapPackageMode(int enabled)
+{
+    if (!xz_runtime.initialized)
+        return;
+
+    XzMapRuntime_SetVerifiedPackageMode(
+        &xz_runtime.map_runtime,
+        enabled);
+
+    XzAndroidLog(
+        ANDROID_LOG_INFO,
+        "map package promotion verified=%d kind=%s map='%s'",
+        XzMapRuntime_IsVerifiedPackage(&xz_runtime.map_runtime),
+        XzMapRuntime_KindName(
+            XzMapRuntime_Kind(&xz_runtime.map_runtime)),
+        XzMapRuntime_MapId(&xz_runtime.map_runtime));
+}
+
 void XzAndroidRuntime_BeginFrame(double now_seconds)
 {
     if (!xz_runtime.initialized)
@@ -1384,9 +1402,8 @@ void XzAndroidRuntime_NotifyWorldTransitionNamed(
         " armed=0 map='%s' mapRuntime=%s generation=%" PRIu64,
         xz_runtime.legacy_world_transitions,
         XzMapRuntime_MapId(&xz_runtime.map_runtime),
-        XzMapRuntime_Kind(&xz_runtime.map_runtime) ==
-                XZ_MAP_RUNTIME_NACHT_BO3
-            ? "NACHT_BO3" : "NONE",
+        XzMapRuntime_KindName(
+            XzMapRuntime_Kind(&xz_runtime.map_runtime)),
         xz_runtime.map_runtime.generation);
 
     if (XzMapRuntime_Kind(&xz_runtime.map_runtime) ==
@@ -1408,6 +1425,13 @@ void XzAndroidRuntime_NotifyWorldTransitionNamed(
             (unsigned int)XZ_NACHT_DOOR_COUNT,
             (unsigned int)XZ_NACHT_BARRICADE_COUNT);
     }
+}
+
+int XzAndroidRuntime_ActiveMapIsVerifiedPackage(void)
+{
+    return xz_runtime.initialized &&
+        XzMapRuntime_IsVerifiedPackage(
+            &xz_runtime.map_runtime);
 }
 
 int XzAndroidRuntime_ActiveMapIsNachtBo3(void)

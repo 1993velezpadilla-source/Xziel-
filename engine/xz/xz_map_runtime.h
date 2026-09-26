@@ -15,13 +15,15 @@ extern "C" {
 
 typedef enum XzMapRuntimeKind {
     XZ_MAP_RUNTIME_NONE = 0,
-    XZ_MAP_RUNTIME_NACHT_BO3 = 1
+    XZ_MAP_RUNTIME_XZIEL_PACKAGE = 1,
+    XZ_MAP_RUNTIME_NACHT_BO3 = 2
 } XzMapRuntimeKind;
 
 typedef struct XzMapRuntimeState {
     XzMapRuntimeKind kind;
     char map_id[XZ_MAP_RUNTIME_NAME_MAX];
     uint64_t generation;
+    int verified_package_mode;
     XzWorldTransform world_transform;
     XzNachtGameplayState nacht;
 } XzMapRuntimeState;
@@ -31,8 +33,18 @@ void XzMapRuntime_SetWorldModel(
     XzMapRuntimeState *state,
     const char *world_model_name);
 
+void XzMapRuntime_SetVerifiedPackageMode(
+    XzMapRuntimeState *state,
+    int enabled);
+
+int XzMapRuntime_IsVerifiedPackage(
+    const XzMapRuntimeState *state);
+
 XzMapRuntimeKind XzMapRuntime_Kind(
     const XzMapRuntimeState *state);
+
+const char *XzMapRuntime_KindName(
+    XzMapRuntimeKind kind);
 
 const char *XzMapRuntime_MapId(
     const XzMapRuntimeState *state);
