@@ -255,7 +255,10 @@
         "preserveOriginalAatState": true,
         "disableManualWeaponCycling": true,
         "disableOffhandWeapons": true,
-        "exactEligiblePoolFilterStatus": "pending_due_decompiler_ambiguity"
+        "exactEligiblePoolFilterStatus": "verified",
+        "eligiblePoolCount": 26,
+        "excludedPrototypeIdentityCount": 15,
+        "poolSource": "assets/nacht_reference/bo3_disorderly_combat_pool_v1.json"
       },
       "sourceAuthority": [
         {
@@ -268,7 +271,12 @@
         "status": "identity_backend_ready_runtime_pending",
         "upgradeResolver": "XZIEL_GetPackAPunchWeaponID",
         "readinessGate": "XZIEL_PackAPunchRuntimeReady",
-        "timerRotationInventoryRuntime": "pending"
+        "timerRotationInventoryRuntime": "pending",
+        "poolStatus": "verified_runtime_blocked",
+        "fullPoolRequired": true,
+        "readyPoolCount": 0,
+        "requiredPoolCount": 26,
+        "activationAllowed": false
       }
     },
     {
@@ -842,7 +850,9 @@
     "papEventPlumbingLogicReady": 2,
     "papRuntimeRewardsExposed": 0,
     "papTimedEffectLogicReady": 1,
-    "papDependentRuntimeLogicReady": 3
+    "papDependentRuntimeLogicReady": 3,
+    "disorderlyCombatPoolVerified": true,
+    "disorderlyCombatEligiblePoolCount": 26
   },
   "runtimeCore": {
     "status": "logic_ready",
