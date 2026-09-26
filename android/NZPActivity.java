@@ -78,6 +78,17 @@ public class NZPActivity extends SDLActivity {
         super.onCreate(savedInstanceState);
         multiplayer = new XzielMultiplayer(this, BuildConfig.XZIEL_MULTIPLAYER_URL);
         applyImmersiveMode();
+
+        boolean ciPublicMatch = getIntent() != null
+            && getIntent().getBooleanExtra("xziel_ci_public_match", false);
+        if (ciPublicMatch) {
+            getWindow().getDecorView().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (multiplayer != null) multiplayer.findPublicMatch();
+                }
+            }, 5000);
+        }
         getWindow().getDecorView().postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -137,6 +148,17 @@ public class NZPActivity extends SDLActivity {
 
     public String xzielOnlinePollCommand() {
         return multiplayer != null ? multiplayer.pollNativeCommand() : "";
+    }
+
+    public void xzielOnlineEngineState(boolean serverActive, boolean clientConnected,
+                                       int signon, String map) {
+        if (multiplayer != null) {
+            multiplayer.onEngineState(serverActive, clientConnected, signon, map);
+        }
+    }
+
+    public void xzielLeaveMultiplayer() {
+        if (multiplayer != null) multiplayer.leaveRoom();
     }
 
     @Override
