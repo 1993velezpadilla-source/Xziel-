@@ -593,22 +593,30 @@ def main() -> int:
         preflight_errors.append(f"expected 21 zombie spawns, got {len(zombie_spawns)}")
     if len(purchases) != 9:
         preflight_errors.append(f"expected 9 BO3 purchase slots, got {len(purchases)}")
-    anchor_count = len(purchase_doc.get("anchors", []))
+    anchor_count = len(wallbuy.get("anchors", []))
     if not anchor_count:
+        validation = wallbuy.get("validation", {})
+        summary = wallbuy.get("summary", {})
         anchor_count = int(
-            purchase_doc.get("summary", {}).get("functional_actor_slots", 0)
+            validation.get(
+                "functional_actor_slots",
+                summary.get(
+                    "functional_actor_slots",
+                    summary.get("functional_count", 0),
+                ),
+            )
         )
     if anchor_count != 3:
         preflight_errors.append(
             f"purchase calibration expected 3 functional anchors, got {anchor_count}"
         )
-    calibration_error = purchase_doc.get("validation", {}).get(
+    calibration_error = wallbuy.get("validation", {}).get(
         "max_anchor_error_cm"
     )
     if calibration_error is None:
-        calibration_error = purchase_doc.get("summary", {}).get(
+        calibration_error = wallbuy.get("summary", {}).get(
             "calibration_rmse_cm",
-            purchase_doc.get("calibration", {}).get("rmse_cm"),
+            wallbuy.get("calibration", {}).get("rmse_cm"),
         )
     if calibration_error is None or float(calibration_error) > 10.0:
         preflight_errors.append(
@@ -632,9 +640,9 @@ def main() -> int:
             "collisionActors": len(collision),
             "zones": len(zones),
         },
-        "wallBuyValidation": purchase_doc.get("validation") or {
-            "calibration": purchase_doc.get("calibration"),
-            "summary": purchase_doc.get("summary"),
+        "wallBuyValidation": wallbuy.get("validation") or {
+            "calibration": wallbuy.get("calibration"),
+            "summary": wallbuy.get("summary"),
         },
     }
 
