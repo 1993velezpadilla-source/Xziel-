@@ -84,6 +84,12 @@ public class NZPActivity extends SDLActivity {
         final String ciMatchQueue = getIntent() != null
             ? getIntent().getStringExtra("xziel_ci_match_queue")
             : null;
+        final String ciPlayerId = getIntent() != null
+            ? getIntent().getStringExtra("xziel_ci_player_id")
+            : null;
+        if (ciPlayerId != null && multiplayer != null) {
+            multiplayer.setCiPlayerId(ciPlayerId);
+        }
         if (ciPublicMatch) {
             getWindow().getDecorView().postDelayed(new Runnable() {
                 @Override
