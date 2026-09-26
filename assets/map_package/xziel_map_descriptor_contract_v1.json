@@ -32,6 +32,7 @@
     }
   },
   "rules": [
+    "entryWorld must equal maps/<mapId>.bsp",
     "entryWorld must exist inside the package payload with exact case",
     "entryWorld must be classified as world_geometry",
     "mapId is the canonical runtime identity and must not be inferred from a filename",
