@@ -39,6 +39,22 @@ def verify(path) -> dict:
         if manifest.get("summary", {}).get("strictReady") is not True:
             fail("embedded inventory is not strictReady")
 
+        map_meta = manifest.get("map", {})
+        map_id = map_meta.get("mapId")
+        entry_world = map_meta.get("entryWorld")
+        if not isinstance(map_id, str) or not map_id:
+            fail("mapId missing")
+        if map_meta.get("contentContract") != "xziel_map_content_contract_v1":
+            fail("map content contract drift")
+        if map_meta.get("gameMode") != "round_based_zombies":
+            fail("unsupported map gameMode")
+        if map_meta.get("serverAuthoritative") is not True:
+            fail("map must remain server authoritative")
+        if not isinstance(map_meta.get("maxPlayers"), int) or not (1 <= map_meta["maxPlayers"] <= 4):
+            fail("map maxPlayers out of range")
+        if not isinstance(entry_world, str) or not entry_world.startswith("maps/") or not entry_world.endswith(".bsp"):
+            fail("entryWorld invalid")
+
         expected = {}
         for row in manifest.get("files", []):
             rel = row.get("path")
@@ -51,6 +67,9 @@ def verify(path) -> dict:
             if arc in expected:
                 fail(f"duplicate payload path in manifest: {rel}")
             expected[arc] = row
+
+        if "payload/" + entry_world not in expected:
+            fail("entryWorld missing from embedded inventory")
 
         actual = [n for n in names if n.startswith("payload/") and not n.endswith("/")]
         if sorted(actual) != sorted(expected):
