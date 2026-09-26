@@ -1,0 +1,246 @@
+name: Pavlov BO3 Nacht Full Scene Preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - experiment/bo3-nacht-standalone-audit
+    paths:
+      - ".github/workflows/pavlov-bo3-nacht-full-scene-preview.yml"
+      - "tools/maps/extract_pavlov_nacht_layout.py"
+
+jobs:
+  layout:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download and unpack Pavlov Nacht
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $steam=Join-Path $env:RUNNER_TEMP 'steamcmd'
+          New-Item -ItemType Directory -Force -Path $steam | Out-Null
+          Invoke-WebRequest 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'steamcmd.zip')
+          Expand-Archive (Join-Path $env:RUNNER_TEMP 'steamcmd.zip') -DestinationPath $steam -Force
+          & (Join-Path $steam 'steamcmd.exe') +login anonymous +workshop_download_item 555160 2755515831 validate +quit
+          $root=Get-ChildItem $steam,$env:RUNNER_TEMP -Directory -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.FullName -like '*steamapps\workshop\content\555160\2755515831'} | Select-Object -First 1
+          if(-not $root){throw 'payload not found'}
+          $pak=Join-Path $root.FullName 'WindowsNoEditor.pak'; if(-not(Test-Path $pak)){throw 'pak missing'}
+          Invoke-WebRequest 'https://github.com/trumank/repak/releases/download/v0.2.3/repak_cli-x86_64-pc-windows-msvc.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'repak.zip')
+          $rd=Join-Path $env:RUNNER_TEMP 'repak'; Expand-Archive (Join-Path $env:RUNNER_TEMP 'repak.zip') -DestinationPath $rd -Force
+          $repak=Get-ChildItem $rd -Filter repak.exe -Recurse | Select-Object -First 1
+          $out=Join-Path $env:RUNNER_TEMP 'unpacked'; New-Item -ItemType Directory -Force -Path $out | Out-Null
+          & $repak.FullName unpack $pak -o $out
+          if($LASTEXITCODE -ne 0){throw 'repak failed'}
+          $map=Get-ChildItem $out -Filter Nacht_de_Untoten.umap -Recurse | Select-Object -First 1
+          if(-not $map){throw 'map missing'}
+          Invoke-WebRequest 'https://github.com/atenfyr/UAssetGUI/releases/download/v1.1.0/UAssetGUI.exe' -OutFile (Join-Path $env:RUNNER_TEMP 'UAssetGUI.exe')
+          New-Item -ItemType Directory -Force -Path audit-out | Out-Null
+          & (Join-Path $env:RUNNER_TEMP 'UAssetGUI.exe') tojson $map.FullName 'audit-out\Nacht_de_Untoten.json' VER_UE4_21
+          if($LASTEXITCODE -ne 0){throw 'UAssetGUI failed'}
+      - name: Extract spatial manifest
+        shell: pwsh
+        run: |
+          python tools/maps/extract_pavlov_nacht_layout.py audit-out/Nacht_de_Untoten.json audit-out/nacht-spatial-manifest.json
+          if($LASTEXITCODE -ne 0){throw 'spatial manifest failed'}
+          python -c "import json; d=json.load(open('audit-out/nacht-spatial-manifest.json')); rows=[r for r in d['static_mesh_instances'] if r.get('actor_class')=='/Script/Engine/StaticMeshActor' and isinstance(r.get('mesh'),str) and '/CoD_nacht/' in r['mesh']]; names=sorted(set(r['mesh'].rsplit('/',1)[-1] for r in rows)); open('audit-out/used-mesh-names.txt','w').write('\\n'.join(names)+'\\n'); print('used instances',len(rows),'unique names',len(names)); assert len(names)==490"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nacht-full-scene-layout
+          path: |
+            audit-out/nacht-spatial-manifest.json
+            audit-out/used-mesh-names.txt
+          retention-days: 3
+
+  render:
+    needs: layout
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: nacht-full-scene-layout
+          path: audit-in
+      - name: Install render/export dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y blender p7zip-full python3-numpy libegl1 libgl1 libgl1-mesa-dri libegl-mesa0
+          mkdir -p "$RUNNER_TEMP/steamcmd" "$RUNNER_TEMP/repak"
+          curl -fL --retry 6 --retry-delay 2 --retry-all-errors https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz -o "$RUNNER_TEMP/steamcmd.tgz"
+          tar -xzf "$RUNNER_TEMP/steamcmd.tgz" -C "$RUNNER_TEMP/steamcmd"
+          "$RUNNER_TEMP/steamcmd/steamcmd.sh" +quit || true
+          curl -fL https://github.com/trumank/repak/releases/download/v0.2.3/repak_cli-x86_64-unknown-linux-gnu.tar.xz -o "$RUNNER_TEMP/repak.tar.xz"
+          tar -xJf "$RUNNER_TEMP/repak.tar.xz" -C "$RUNNER_TEMP/repak"
+          REPAK=$(find "$RUNNER_TEMP/repak" -type f -name 'repak*' -perm -111 | head -1)
+          echo "REPAK=$REPAK" >> "$GITHUB_ENV"
+      - name: Download and unpack Workshop payload
+        run: |
+          set +e
+          "$RUNNER_TEMP/steamcmd/steamcmd.sh" +login anonymous +workshop_download_item 555160 2755515831 validate +quit
+          ROOT=$(find "$HOME" "$RUNNER_TEMP" -type d -path '*/steamapps/workshop/content/555160/2755515831' -print -quit 2>/dev/null)
+          test -n "$ROOT" || exit 1
+          mkdir -p "$RUNNER_TEMP/unpacked"
+          "$REPAK" unpack "$ROOT/WindowsNoEditor.pak" -o "$RUNNER_TEMP/unpacked"
+          echo "UNPACKED=$RUNNER_TEMP/unpacked" >> "$GITHUB_ENV"
+          exit 0
+      - name: Build used-mesh GLB exporter
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/exporter"; cd "$RUNNER_TEMP/exporter"
+          dotnet new console --framework net10.0 --force
+          dotnet add package CUE4Parse --version 1.2.2.202609
+          dotnet add package CUE4Parse-Conversion --version 1.2.2.202609
+          cat > Program.cs <<'CS'
+          using CUE4Parse.FileProvider;
+          using CUE4Parse.UE4.Versions;
+          using CUE4Parse.UE4.Assets.Exports.StaticMesh;
+          using CUE4Parse_Conversion;
+          using CUE4Parse_Conversion.Options;
+          if(args.Length<3) return 2;
+          var wanted=new HashSet<string>(File.ReadAllLines(args[2]).Where(x=>!string.IsNullOrWhiteSpace(x)),StringComparer.OrdinalIgnoreCase);
+          var provider=new DefaultFileProvider(args[0],SearchOption.AllDirectories,true,new VersionContainer(EGame.GAME_UE4_21));
+          provider.Initialize(); provider.PostMount(); provider.LoadVirtualPaths();
+          var session=new ExportSession{MaxDegreeOfParallelism=Math.Max(1,Environment.ProcessorCount/2)};
+          var queued=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+          foreach(var file in provider.Files.Values.Where(f=>f.IsUePackage && f.Path.Contains("/CoD_nacht/",StringComparison.OrdinalIgnoreCase) && f.Path.EndsWith(".uasset",StringComparison.OrdinalIgnoreCase))) {
+            try {
+              foreach(var mesh in provider.LoadPackage(file.Path).GetExports().OfType<UStaticMesh>()) {
+                if(!wanted.Contains(mesh.Name)) continue;
+                if(queued.Add(mesh.Name)) session.Add(mesh);
+              }
+            } catch(Exception e) { Console.WriteLine("skip="+file.Path+" :: "+e.Message); }
+          }
+          Console.WriteLine($"wanted={wanted.Count} queued={queued.Count}");
+          Directory.CreateDirectory(args[1]);
+          var results=await session.RunAsync(args[1],new ExportOptions(meshFormat:EMeshFormat.Gltf2,exportMaterials:false));
+          Console.WriteLine($"results={results.Count}");
+          return queued.Count==wanted.Count && results.Count==wanted.Count ? 0 : 3;
+          CS
+          dotnet build -c Release
+      - name: Export 490 unique scene meshes
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/scene-glb" audit-out
+          cd "$GITHUB_WORKSPACE"
+          dotnet "$RUNNER_TEMP/exporter/bin/Release/net10.0/exporter.dll" "$UNPACKED" "$RUNNER_TEMP/scene-glb" "$GITHUB_WORKSPACE/audit-in/used-mesh-names.txt" 2>&1 | tee audit-out/export.log
+          python3 - <<'PY'
+          import os,pathlib,shutil
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'scene-glb'; out.mkdir(exist_ok=True)
+          for p in list(pathlib.Path.cwd().iterdir()):
+            if p.is_file() and p.name.lower().endswith('.glb') and '\\' in p.name:
+              name=p.name.replace('\\','/').split('/')[-1]
+              shutil.move(str(p),str(out/name))
+          glbs=list(out.rglob('*.glb'))
+          print('recovered',len(glbs))
+          assert len(glbs)==490, len(glbs)
+          PY
+      - name: Assemble exact StaticMeshActor scene and render
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/assemble.py" <<'PY'
+          import bpy, json, math, os, pathlib
+          from mathutils import Matrix, Vector
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'scene-glb'
+          manifest=json.loads(pathlib.Path('audit-in/nacht-spatial-manifest.json').read_text())
+          out=pathlib.Path('audit-out'); out.mkdir(exist_ok=True)
+          bpy.ops.wm.read_factory_settings(use_empty=True)
+
+          def ue_rot_matrix(rot):
+            if not isinstance(rot,dict): return Matrix.Identity(3)
+            p=math.radians(float(rot.get('Pitch',0))); y=math.radians(float(rot.get('Yaw',0))); r=math.radians(float(rot.get('Roll',0)))
+            sp,sy,sr=math.sin(p),math.sin(y),math.sin(r); cp,cy,cr=math.cos(p),math.cos(y),math.cos(r)
+            # Exact Unreal FRotationTranslationMatrix rows, transposed for column-vector math.
+            rows=((cp*cy,cp*sy,sp),(sr*sp*cy-cr*sy,sr*sp*sy+cr*cy,-sr*cp),(-(cr*sp*cy+sr*sy),cy*sr-cr*sp*sy,cr*cp))
+            ru=Matrix(rows).transposed()
+            B=Matrix(((1,0,0),(0,-1,0),(0,0,1)))
+            return B @ ru @ B
+
+          def matrix_for(row):
+            loc=row.get('relative_location') or {}
+            rot=row.get('relative_rotation')
+            sc=row.get('relative_scale') or {'X':1,'Y':1,'Z':1}
+            t=Vector((float(loc.get('X',0))/100.0,-float(loc.get('Y',0))/100.0,float(loc.get('Z',0))/100.0))
+            R=ue_rot_matrix(rot).to_4x4()
+            S=Matrix.Diagonal((float(sc.get('X',1)),float(sc.get('Y',1)),float(sc.get('Z',1)),1.0))
+            T=Matrix.Translation(t)
+            return T @ R @ S
+
+          wanted=sorted(set(r['mesh'].rsplit('/',1)[-1] for r in manifest['static_mesh_instances'] if r.get('actor_class')=='/Script/Engine/StaticMeshActor' and isinstance(r.get('mesh'),str) and '/CoD_nacht/' in r['mesh']))
+          files={p.stem:p for p in root.rglob('*.glb')}
+          missing=[n for n in wanted if n not in files]
+          if missing: raise RuntimeError('missing glbs '+repr(missing[:20]))
+
+          source_collection=bpy.data.collections.new('SOURCE_MESHES'); bpy.context.scene.collection.children.link(source_collection); source_collection.hide_render=True
+          sources={}
+          for idx,name in enumerate(wanted):
+            before=set(bpy.data.objects)
+            bpy.ops.import_scene.gltf(filepath=str(files[name]))
+            new=[o for o in bpy.data.objects if o not in before and o.type=='MESH']
+            if not new: raise RuntimeError('no mesh object '+name)
+            if len(new)>1:
+              bpy.ops.object.select_all(action='DESELECT')
+              for o in new:o.select_set(True)
+              bpy.context.view_layer.objects.active=new[0]; bpy.ops.object.join(); new=[new[0]]
+            o=new[0]; o.name='SRC_'+name
+            # Move the source object into hidden source collection.
+            for col in list(o.users_collection): col.objects.unlink(o)
+            source_collection.objects.link(o); o.hide_viewport=True; o.hide_render=True
+            sources[name]=o.data
+            if (idx+1)%50==0: print('imported unique',idx+1)
+
+          scene_collection=bpy.data.collections.new('NACHT_SCENE'); bpy.context.scene.collection.children.link(scene_collection)
+          rows=[r for r in manifest['static_mesh_instances'] if r.get('actor_class')=='/Script/Engine/StaticMeshActor' and isinstance(r.get('mesh'),str) and '/CoD_nacht/' in r['mesh']]
+          for idx,row in enumerate(rows):
+            name=row['mesh'].rsplit('/',1)[-1]
+            obj=bpy.data.objects.new(row.get('actor_name') or ('inst_'+str(idx)),sources[name])
+            obj.matrix_world=matrix_for(row)
+            scene_collection.objects.link(obj)
+            if (idx+1)%1000==0: print('instances',idx+1)
+
+          # Neutral validation material: geometry/layout authority only.
+          mat=bpy.data.materials.new('Nacht_Layout_Validation'); mat.diffuse_color=(0.45,0.45,0.45,1)
+          for data in set(sources.values()):
+            data.materials.clear(); data.materials.append(mat)
+
+          mins=Vector((1e30,1e30,1e30)); maxs=Vector((-1e30,-1e30,-1e30))
+          for o in scene_collection.objects:
+            for corner in o.bound_box:
+              p=o.matrix_world @ Vector(corner)
+              for k in range(3): mins[k]=min(mins[k],p[k]); maxs[k]=max(maxs[k],p[k])
+          center=(mins+maxs)*0.5; span=maxs-mins; maxspan=max(span)
+
+          scene=bpy.context.scene; scene.render.engine='BLENDER_WORKBENCH'; scene.display.shading.light='STUDIO'; scene.display.shading.show_shadows=True; scene.display.shading.show_cavity=True; scene.display.shading.cavity_type='BOTH'; scene.display.shading.color_type='MATERIAL'
+          scene.render.resolution_x=1600; scene.render.resolution_y=1100; scene.render.resolution_percentage=100; scene.render.image_settings.file_format='PNG'
+          cam_data=bpy.data.cameras.new('Camera'); cam=bpy.data.objects.new('Camera',cam_data); bpy.context.collection.objects.link(cam); scene.camera=cam; cam.data.type='ORTHO'; cam.data.clip_start=.01; cam.data.clip_end=maxspan*10+100
+          def look(loc,target): cam.location=loc; cam.rotation_euler=(target-loc).to_track_quat('-Z','Y').to_euler()
+          dist=maxspan*2.5+1
+          views=[('full_top.png',center+Vector((0,0,dist)),max(span.x,span.y)*1.08),('full_front.png',center+Vector((0,-dist,0)),max(span.x,span.z)*1.08),('full_side.png',center+Vector((dist,0,0)),max(span.y,span.z)*1.08),('full_iso.png',center+Vector((dist,-dist,dist*.72)),maxspan*1.42)]
+          for name,loc,scale in views:
+            look(loc,center); cam.data.ortho_scale=max(scale,1); scene.render.filepath=str(out/name); bpy.ops.render.render(write_still=True)
+
+          # Player-spawn perspective for human-readable visual validation.
+          spawn=next((a for a in manifest.get('gameplay_actors',[]) if 'Pavlov_Spawn' in a.get('class','') and (a.get('transform') or {}).get('location')),None)
+          if spawn:
+            l=spawn['transform']['location']; eye=Vector((float(l['X'])/100,-float(l['Y'])/100,float(l['Z'])/100+1.65))
+            cam.data.type='PERSP'; cam.data.lens=28; look(eye,center+Vector((0,0,1.2))); scene.render.filepath=str(out/'full_spawn_perspective.png'); bpy.ops.render.render(write_still=True)
+
+          report={'unique_meshes':len(wanted),'instances':len(rows),'bounds_min':list(mins),'bounds_max':list(maxs),'span':list(span),'renders':[x[0] for x in views]+(['full_spawn_perspective.png'] if spawn else [])}
+          (out/'full-scene-report.json').write_text(json.dumps(report,indent=2)+'\n'); print(json.dumps(report,indent=2))
+          PY
+          blender -b --python "$RUNNER_TEMP/assemble.py" 2>&1 | tee audit-out/blender-full-scene.log
+          test -f audit-out/full_top.png
+          test -f audit-out/full_iso.png
+          test -f audit-out/full-scene-report.json
+      - name: Upload screenshots and report only
+        uses: actions/upload-artifact@v4
+        with:
+          name: pavlov-bo3-nacht-full-scene-preview
+          path: |
+            audit-out/full_*.png
+            audit-out/full-scene-report.json
+            audit-out/export.log
+            audit-out/blender-full-scene.log
+          retention-days: 7
