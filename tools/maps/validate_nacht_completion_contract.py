@@ -499,22 +499,52 @@ def main() -> int:
         fail("Mystery Box pool contains duplicate weapons")
 
     registry_entries = weapon_id_registry.get("entries", [])
+    upgrade_registry_entries = weapon_id_registry.get("upgradeEntries", [])
     if not isinstance(registry_entries, list):
         fail("weapon ID registry entries must be a list")
+    if not isinstance(upgrade_registry_entries, list):
+        fail("weapon ID registry upgradeEntries must be a list")
+
     registry_ids = [row.get("weaponId") for row in registry_entries]
-    quakec_ids = [row.get("quakecId") for row in registry_entries]
-    mbox_tokens = [row.get("mboxToken") for row in registry_entries]
     if set(registry_ids) != catalog_set:
         fail("weapon ID registry must cover the complete weapon catalog")
+
+    all_registry_rows = registry_entries + upgrade_registry_entries
+    quakec_ids = [row.get("quakecId") for row in all_registry_rows]
+    mbox_tokens = [row.get("mboxToken") for row in all_registry_rows]
+    defines = [row.get("quakecDefine") for row in all_registry_rows]
     if len(quakec_ids) != len(set(quakec_ids)):
-        fail("weapon ID registry contains duplicate QuakeC IDs")
+        fail("base + PaP registry contains duplicate QuakeC IDs")
     if len(mbox_tokens) != len(set(mbox_tokens)):
-        fail("weapon ID registry contains duplicate Mystery Box tokens")
+        fail("base + PaP registry contains duplicate tokens")
+    if len(defines) != len(set(defines)):
+        fail("base + PaP registry contains duplicate QuakeC defines")
+
     registry_by_id = {row["weaponId"]: row for row in registry_entries}
     if registry_by_id.get("pistol_burst", {}).get("quakecId") != 70:
         fail("RK5 stable QuakeC ID must remain pinned to 70")
     if baseline.get("weaponIdRegistryCount") != len(registry_entries):
         fail("weaponIdRegistryCount drift")
+
+    if len(upgrade_registry_entries) != 35:
+        fail(f"expected 35 dedicated PaP registry IDs, got {len(upgrade_registry_entries)}")
+    dedicated_upgrade_ids = [row.get("upgradeWeaponId") for row in upgrade_registry_entries]
+    expected_dedicated_upgrades = {
+        row["upgradeWeaponId"]
+        for row in pap_variants
+        if row["upgradeWeaponId"] != "cymbal_monkey_upgraded"
+    }
+    if set(dedicated_upgrade_ids) != expected_dedicated_upgrades:
+        fail("dedicated PaP registry identity set drift")
+    dedicated_qids = sorted(row.get("quakecId") for row in upgrade_registry_entries)
+    if dedicated_qids != list(range(160, 195)):
+        fail(f"dedicated PaP registry ID range drift: {dedicated_qids}")
+    if baseline.get("packAPunchDedicatedNativeIdCount") != 35:
+        fail("packAPunchDedicatedNativeIdCount drift")
+    if baseline.get("packAPunchReusedCatalogIdCount") != 1:
+        fail("packAPunchReusedCatalogIdCount drift")
+    if "cymbal_monkey_upgraded" not in registry_by_id:
+        fail("cymbal_monkey_upgraded must remain a reused catalog identity")
 
     if runtime_box_pool.get("candidateCount") != len(pool_ids):
         fail("runtime Mystery Box candidateCount drift")
