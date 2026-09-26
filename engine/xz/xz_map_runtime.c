@@ -191,6 +191,26 @@ int XzMapRuntime_NachtPurchasePositionUnits(
     return 1;
 }
 
+const XzBo3WeaponSpec *XzMapRuntime_NachtPurchaseWeaponSpec(
+    const XzMapRuntimeState *state,
+    size_t index)
+{
+    const XzNachtPurchase *purchase;
+
+    if (!state ||
+        state->kind != XZ_MAP_RUNTIME_NACHT_BO3)
+        return NULL;
+
+    purchase = XzNacht_GetPurchase(index);
+    if (!purchase ||
+        !purchase->logical_item_id ||
+        strcmp(purchase->logical_item_id, "frag_grenade") == 0)
+        return NULL;
+
+    return XzBo3WeaponSpec_FindByLogicalItemId(
+        purchase->logical_item_id);
+}
+
 int XzMapRuntime_NachtDoorPositionUnits(
     const XzMapRuntimeState *state,
     size_t index,
