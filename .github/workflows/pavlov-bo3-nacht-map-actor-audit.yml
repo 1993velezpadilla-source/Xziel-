@@ -53,7 +53,13 @@ jobs:
 
           var provider = new DefaultFileProvider(args[0], SearchOption.TopDirectoryOnly, true, new VersionContainer(EGame.GAME_UE4_21));
           provider.Initialize();
-          var packagePath = "Pavlov/Content/CustomMaps/UGC2755515831/Nacht_de_Untoten.umap";
+          var packagePath = provider.Files.Keys.FirstOrDefault(k => k.EndsWith("Nacht_de_Untoten.umap", StringComparison.OrdinalIgnoreCase));
+          if (packagePath == null) {
+              Console.Error.WriteLine("Nacht_de_Untoten.umap not found. Matching provider keys:");
+              foreach (var key in provider.Files.Keys.Where(k => k.Contains("Nacht", StringComparison.OrdinalIgnoreCase)).Take(100)) Console.Error.WriteLine(key);
+              return 3;
+          }
+          Console.WriteLine($"resolved_package={packagePath}");
           var exports = provider.LoadPackage(packagePath).GetExports().ToArray();
           File.WriteAllText(args[1], JsonConvert.SerializeObject(exports, Formatting.Indented, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore }));
           Console.WriteLine($"package={packagePath} exports={exports.Length}");
