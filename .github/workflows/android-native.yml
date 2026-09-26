@@ -201,6 +201,16 @@ jobs:
             -lm -o /tmp/xz_nacht_reference_test
           /tmp/xz_nacht_reference_test
 
+      - name: Test XZIEL world transform
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_world_transform_test.c \
+            engine/xz/xz_world_transform.c \
+            -lm -o /tmp/xz_world_transform_test
+          /tmp/xz_world_transform_test
+
       - name: Test XZIEL map identity runtime
         shell: bash
         run: |
@@ -208,6 +218,7 @@ jobs:
             -Iengine/xz \
             tests/xz_map_runtime_test.c \
             engine/xz/xz_map_runtime.c \
+            engine/xz/xz_world_transform.c \
             engine/xz/xz_nacht_reference.c \
             -lm -o /tmp/xz_map_runtime_test
           /tmp/xz_map_runtime_test
