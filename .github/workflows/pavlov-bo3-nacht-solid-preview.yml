@@ -1,0 +1,204 @@
+name: Pavlov BO3 Nacht Solid Geometry Preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - experiment/bo3-nacht-standalone-audit
+    paths:
+      - ".github/workflows/pavlov-bo3-nacht-solid-preview.yml"
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y blender p7zip-full
+          mkdir -p "$RUNNER_TEMP/steamcmd" "$RUNNER_TEMP/repak"
+          curl -fL --retry 6 --retry-delay 2 --retry-all-errors https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz -o "$RUNNER_TEMP/steamcmd.tgz"
+          tar -xzf "$RUNNER_TEMP/steamcmd.tgz" -C "$RUNNER_TEMP/steamcmd"
+          "$RUNNER_TEMP/steamcmd/steamcmd.sh" +quit || true
+          curl -fL --retry 5 https://github.com/trumank/repak/releases/download/v0.2.3/repak_cli-x86_64-unknown-linux-gnu.tar.xz -o "$RUNNER_TEMP/repak.tar.xz"
+          tar -xJf "$RUNNER_TEMP/repak.tar.xz" -C "$RUNNER_TEMP/repak"
+          REPAK_BIN=$(find "$RUNNER_TEMP/repak" -type f -name 'repak*' -perm -111 | head -1)
+          test -n "$REPAK_BIN"
+          echo "REPAK_BIN=$REPAK_BIN" >> "$GITHUB_ENV"
+
+      - name: Download and unpack Pavlov BO3 Nacht
+        run: |
+          set +e
+          "$RUNNER_TEMP/steamcmd/steamcmd.sh" +login anonymous +workshop_download_item 555160 2755515831 validate +quit 2>&1 | tee "$RUNNER_TEMP/steamcmd.log"
+          ROOT=$(find "$HOME" "$RUNNER_TEMP" -type d -path '*/steamapps/workshop/content/555160/2755515831' -print -quit 2>/dev/null)
+          if [ -z "$ROOT" ]; then echo 'Workshop payload missing'; exit 1; fi
+          PAK="$ROOT/WindowsNoEditor.pak"
+          test -f "$PAK" || exit 1
+          mkdir -p "$RUNNER_TEMP/pakextract"
+          "$REPAK_BIN" unpack "$PAK" -o "$RUNNER_TEMP/pakextract"
+          echo "PAK_EXTRACT=$RUNNER_TEMP/pakextract" >> "$GITHUB_ENV"
+          exit 0
+
+      - name: Build proven CUE4Parse GLB exporter
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/mapexport"
+          cd "$RUNNER_TEMP/mapexport"
+          dotnet new console --framework net10.0 --force
+          dotnet add package CUE4Parse --version 1.2.2.202609
+          dotnet add package CUE4Parse-Conversion --version 1.2.2.202609
+          cat > Program.cs <<'CS'
+          using CUE4Parse.FileProvider;
+          using CUE4Parse.UE4.Versions;
+          using CUE4Parse.UE4.Assets.Exports.StaticMesh;
+          using CUE4Parse_Conversion;
+          using CUE4Parse_Conversion.Options;
+
+          if (args.Length < 2) return 2;
+          var provider = new DefaultFileProvider(args[0], SearchOption.AllDirectories, true, new VersionContainer(EGame.GAME_UE4_21));
+          provider.Initialize(); provider.PostMount(); provider.LoadVirtualPaths();
+          var candidates = provider.Files.Values
+              .Where(f => f.IsUePackage)
+              .Where(f => f.Path.Contains("/CoD_nacht/MAP_FILES/", StringComparison.OrdinalIgnoreCase))
+              .Where(f => f.Path.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase))
+              .OrderBy(f => f.Path).ToArray();
+          var session = new ExportSession { MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount / 2) };
+          int queued=0;
+          foreach (var file in candidates) {
+              try {
+                  var pkg=provider.LoadPackage(file.Path);
+                  foreach(var mesh in pkg.GetExports().OfType<UStaticMesh>()) {
+                      if(!mesh.GetPathName().Contains("zm_prototype_part", StringComparison.OrdinalIgnoreCase)) continue;
+                      session.Add(mesh); queued++;
+                  }
+              } catch {}
+          }
+          Console.WriteLine($"queued={queued}");
+          var results=await session.RunAsync(args[1], new ExportOptions(meshFormat: EMeshFormat.Gltf2, exportMaterials:false));
+          Console.WriteLine($"results={results.Count}");
+          return results.Count==120 ? 0 : 3;
+          CS
+          dotnet build -c Release
+
+      - name: Export 120 world geometry GLBs
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/mapglb"
+          cd "$GITHUB_WORKSPACE"
+          dotnet "$RUNNER_TEMP/mapexport/bin/Release/net10.0/mapexport.dll" "$PAK_EXTRACT" "$RUNNER_TEMP/mapglb" 2>&1 | tee "$RUNNER_TEMP/cue4-export.log"
+          # CUE4Parse writes Windows-style path strings as literal Linux filenames; recover all GLBs.
+          python3 - <<'PY'
+          import pathlib,os,shutil
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'mapglb'
+          out.mkdir(parents=True,exist_ok=True)
+          for p in list(pathlib.Path.cwd().iterdir()):
+              if p.is_file() and p.name.lower().endswith('.glb') and '\\' in p.name:
+                  name=p.name.replace('\\','/').split('/')[-1]
+                  shutil.move(str(p),str(out/name))
+          print('GLBs',len(list(out.glob('*.glb'))))
+          PY
+          test "$(find "$RUNNER_TEMP/mapglb" -maxdepth 1 -name '*.glb' | wc -l)" -eq 120
+
+      - name: Render neutral solid geometry previews
+        run: |
+          set -euo pipefail
+          mkdir -p audit-out
+          cat > "$RUNNER_TEMP/render_nacht.py" <<'PY'
+          import bpy, math, os, pathlib, json
+          from mathutils import Vector
+
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'mapglb'
+          out=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'audit-out'
+          out.mkdir(parents=True,exist_ok=True)
+
+          bpy.ops.object.select_all(action='SELECT')
+          bpy.ops.object.delete(use_global=False)
+
+          imported=[]
+          for f in sorted(root.glob('*.glb')):
+              before=set(bpy.data.objects)
+              bpy.ops.import_scene.gltf(filepath=str(f))
+              new=[o for o in bpy.data.objects if o not in before and o.type=='MESH']
+              imported.extend(new)
+
+          # Remove imported lights/cameras if any.
+          for o in list(bpy.data.objects):
+              if o.type in {'LIGHT','CAMERA'}:
+                  bpy.data.objects.remove(o,do_unlink=True)
+
+          # One neutral material for structural readability.
+          mat=bpy.data.materials.new('Nacht_Neutral')
+          mat.diffuse_color=(0.42,0.42,0.42,1.0)
+          for o in imported:
+              if o.data:
+                  o.data.materials.clear()
+                  o.data.materials.append(mat)
+
+          # World-space bounds.
+          mins=Vector((1e30,1e30,1e30)); maxs=Vector((-1e30,-1e30,-1e30))
+          for o in imported:
+              for corner in o.bound_box:
+                  p=o.matrix_world @ Vector(corner)
+                  mins.x=min(mins.x,p.x); mins.y=min(mins.y,p.y); mins.z=min(mins.z,p.z)
+                  maxs.x=max(maxs.x,p.x); maxs.y=max(maxs.y,p.y); maxs.z=max(maxs.z,p.z)
+          center=(mins+maxs)*0.5; span=maxs-mins
+
+          scene=bpy.context.scene
+          scene.render.engine='BLENDER_WORKBENCH'
+          scene.display.shading.light='STUDIO'
+          scene.display.shading.show_shadows=True
+          scene.display.shading.show_cavity=True
+          scene.display.shading.cavity_type='BOTH'
+          scene.display.shading.color_type='MATERIAL'
+          scene.render.resolution_x=1400; scene.render.resolution_y=1000; scene.render.resolution_percentage=100
+          scene.render.image_settings.file_format='PNG'
+          scene.render.film_transparent=False
+
+          cam_data=bpy.data.cameras.new('Camera')
+          cam=bpy.data.objects.new('Camera',cam_data)
+          bpy.context.collection.objects.link(cam)
+          scene.camera=cam
+          cam.data.type='ORTHO'
+
+          def look_at(location,target):
+              cam.location=location
+              direction=target-location
+              cam.rotation_euler=direction.to_track_quat('-Z','Y').to_euler()
+
+          maxspan=max(span.x,span.y,span.z)
+          dist=maxspan*2.5+1.0
+          views=[
+              ('solid_top.png', center+Vector((0,0,dist)), max(span.x,span.y)*1.10),
+              ('solid_front.png', center+Vector((0,-dist,0)), max(span.x,span.z)*1.10),
+              ('solid_side.png', center+Vector((dist,0,0)), max(span.y,span.z)*1.10),
+              ('solid_iso.png', center+Vector((dist,-dist,dist*0.72)), maxspan*1.45),
+          ]
+          for name,loc,scale in views:
+              look_at(loc,center)
+              cam.data.ortho_scale=max(scale,1.0)
+              scene.render.filepath=str(out/name)
+              bpy.ops.render.render(write_still=True)
+
+          report={
+              'mesh_objects':len(imported),
+              'bounds_min':[mins.x,mins.y,mins.z],
+              'bounds_max':[maxs.x,maxs.y,maxs.z],
+              'span':[span.x,span.y,span.z],
+              'renders':[x[0] for x in views],
+          }
+          (out/'solid-preview-report.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          PY
+          blender -b --python "$RUNNER_TEMP/render_nacht.py" 2>&1 | tee audit-out/blender-render.log
+
+      - name: Upload screenshots and report only
+        uses: actions/upload-artifact@v4
+        with:
+          name: pavlov-bo3-nacht-solid-preview
+          path: audit-out/
+          if-no-files-found: error
+          retention-days: 7
