@@ -52,16 +52,20 @@ jobs:
           New-Item -ItemType Directory -Force -Path $out | Out-Null
           & $env:REPAK unpack $env:PAK -o $out
           if($LASTEXITCODE -ne 0){throw 'repak failed'}
-          New-Item -ItemType Directory -Force -Path 'audit-out\chalk-json' | Out-Null
+          $audit=Join-Path $env:GITHUB_WORKSPACE 'audit-out'
+          $chalk=Join-Path $audit 'chalk-json'
+          New-Item -ItemType Directory -Force -Path $chalk | Out-Null
           $map=Get-ChildItem $out -Filter 'Nacht_de_Untoten.umap' -Recurse | Select-Object -First 1
-          & $env:UASSETGUI tojson $map.FullName 'audit-out\Nacht_de_Untoten.json' VER_UE4_21
-          if($LASTEXITCODE -ne 0){throw 'map export failed'}
+          $mapJson=Join-Path $audit 'Nacht_de_Untoten.json'
+          & $env:UASSETGUI tojson $map.FullName $mapJson VER_UE4_21
+          if($LASTEXITCODE -ne 0 -or -not (Test-Path $mapJson)){throw 'map export failed'}
           $names=@('arak','argus','frag','krm','kuda','locus_decal','pharaoh','shiva','triton')
           foreach($n in $names){
             $f=Get-ChildItem $out -Filter "zm_prototype_part4_t7_zm_chalk_buy_$n.uasset" -Recurse | Select-Object -First 1
             if(-not $f){throw "missing chalk asset $n"}
-            & $env:UASSETGUI tojson $f.FullName "audit-out\chalk-json\$n.json" VER_UE4_21
-            if($LASTEXITCODE -ne 0){throw "chalk export failed $n"}
+            $chalkJson=Join-Path $chalk "$n.json"
+            & $env:UASSETGUI tojson $f.FullName $chalkJson VER_UE4_21
+            if($LASTEXITCODE -ne 0 -or -not (Test-Path $chalkJson)){throw "chalk export failed $n"}
           }
 
       - name: Build wallbuy repair plan
