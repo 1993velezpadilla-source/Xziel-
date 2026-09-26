@@ -69,7 +69,8 @@
     "packAPunchNativeIdentityResolverPairs": 36,
     "packAPunchLegacyBridgeFunctions": 3,
     "disorderlyCombatEligiblePoolCount": 26,
-    "disorderlyCombatExcludedPrototypeCount": 15
+    "disorderlyCombatExcludedPrototypeCount": 15,
+    "catalogWeaponRuntimeReadyCount": 0
   },
   "bo3ChroniclesFeatureReference": {
     "mysteryBox": true,
@@ -157,13 +158,15 @@
       "wallPowerStatus": "logic_ready_dormant",
       "cratePowerStatus": "logic_ready_dormant",
       "ephemeralEnhancementStatus": "logic_ready_dormant",
-      "disorderlyCombatStatus": "identity_backend_ready_runtime_pending",
+      "disorderlyCombatStatus": "pool_backend_logic_ready_dormant",
       "papTimedEffectLogicReady": 1,
       "papDependentRuntimeLogicReady": 3,
       "disorderlyCombatPoolStatus": "verified",
       "disorderlyCombatEligiblePoolCount": 26,
       "disorderlyCombatReadyPoolCount": 0,
-      "disorderlyCombatActivationAllowed": false
+      "disorderlyCombatActivationAllowed": false,
+      "disorderlyCombatPoolBackendStatus": "logic_ready_dormant",
+      "disorderlyCombatCanActivateFunction": "XZIEL_GobbleGumDisorderlyCanActivate"
     },
     "der_wunderfizz_and_perk_randomization": {
       "state": "pending",
