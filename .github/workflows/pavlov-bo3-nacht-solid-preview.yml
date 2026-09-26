@@ -163,6 +163,7 @@ jobs:
           bpy.context.collection.objects.link(cam)
           scene.camera=cam
           cam.data.type='ORTHO'
+          cam.data.clip_start=0.01
 
           def look_at(location,target):
               cam.location=location
@@ -171,6 +172,7 @@ jobs:
 
           maxspan=max(span.x,span.y,span.z)
           dist=maxspan*2.5+1.0
+          cam.data.clip_end=dist*5.0
           views=[
               ('solid_top.png', center+Vector((0,0,dist)), max(span.x,span.y)*1.10),
               ('solid_front.png', center+Vector((0,-dist,0)), max(span.x,span.z)*1.10),
