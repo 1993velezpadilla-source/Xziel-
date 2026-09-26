@@ -316,6 +316,33 @@ def main() -> int:
         fail("Death Machine duration contract drift")
     if death_machine_spec.get("packAPunchEligible") is not False:
         fail("Death Machine must remain non-Pack-a-Punchable")
+    dm_source = death_machine_spec.get("sourceAuthority", {})
+    dm_impl = dm_source.get("implementationSource", {})
+    dm_generic = dm_source.get("genericPowerupWeaponSource", {})
+    if dm_impl.get("repository") != "ate47/bo3-source":
+        fail("Death Machine implementation source repository drift")
+    if dm_impl.get("path") != "scripts/zm/_zm_powerup_weapon_minigun.gsc":
+        fail("Death Machine implementation source path drift")
+    if dm_impl.get("blobSha") != "9d3f0cbe0d1dd9ac72289cad9531d91a46eccaf8":
+        fail("Death Machine implementation source blob drift")
+    if dm_generic.get("path") != "scripts/zm/_zm_powerups.gsc":
+        fail("Death Machine generic power-up source path drift")
+    if dm_generic.get("blobSha") != "8965a32e1d9f426f94f24e83c095fda8b9c00512":
+        fail("Death Machine generic power-up source blob drift")
+
+    dm_damage = death_machine_spec.get("damage", {})
+    if dm_damage.get("exactFormulaStatus") != "verified_from_bo3_source":
+        fail("Death Machine damage formula verification status drift")
+    if dm_damage.get("randomLowerInclusive") != 0.34:
+        fail("Death Machine damage lower fraction drift")
+    if dm_damage.get("randomUpperExclusive") != 0.75:
+        fail("Death Machine damage upper fraction drift")
+    if dm_damage.get("formula") != (
+        "finalDamage = baseDamage + victimCurrentHealth * random(0.34, 0.75)"
+    ):
+        fail("Death Machine damage formula drift")
+    if dm_damage.get("implementationAllowed") is not True:
+        fail("Death Machine source-backed damage hook must remain implementation-allowed")
     if baseline.get("specialWeaponBehaviorSpecCount") != 1:
         fail("specialWeaponBehaviorSpecCount drift")
 
