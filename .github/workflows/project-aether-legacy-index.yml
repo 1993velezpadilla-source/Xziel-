@@ -1,0 +1,113 @@
+name: Project Aether Legacy Package Index
+
+on:
+  push:
+    branches:
+      - experiment/project-aether-golden-reference
+    paths:
+      - ".github/workflows/project-aether-legacy-index.yml"
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout XZIEL
+        uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y p7zip-full xz-utils
+
+      - name: Download official Project Aether build
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/aether-download"
+          npx --yes itchio-downloader --url "https://verrial.itch.io/projectaether" --downloadDirectory "$RUNNER_TEMP/aether-download"
+          FILE=$(find "$RUNNER_TEMP/aether-download" -type f -name '*.zip' -printf '%s\t%p\n' | sort -nr | head -1 | cut -f2-)
+          test -n "$FILE"
+          echo "PAYLOAD=$FILE" >> "$GITHUB_ENV"
+
+      - name: Extract Paks only and free archive space
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/aether-extracted"
+          7z x -y "$PAYLOAD" 'ProjectAether/Content/Paks/*' -o"$RUNNER_TEMP/aether-extracted"
+          rm -f "$PAYLOAD"
+          PAKDIR="$RUNNER_TEMP/aether-extracted/ProjectAether/Content/Paks"
+          test -d "$PAKDIR"
+          echo "PAKDIR=$PAKDIR" >> "$GITHUB_ENV"
+          du -sh "$PAKDIR"
+          df -h .
+
+      - name: Download retoc and repak
+        run: |
+          set -euo pipefail
+          curl -fL https://github.com/trumank/retoc/releases/download/v0.1.5/retoc_cli-x86_64-unknown-linux-gnu.tar.xz -o "$RUNNER_TEMP/retoc.tar.xz"
+          mkdir -p "$RUNNER_TEMP/retoc" && tar -xJf "$RUNNER_TEMP/retoc.tar.xz" -C "$RUNNER_TEMP/retoc"
+          RETOC=$(find "$RUNNER_TEMP/retoc" -type f -name 'retoc*' -perm -111 | head -1)
+          curl -fL https://github.com/trumank/repak/releases/download/v0.2.3/repak_cli-x86_64-unknown-linux-gnu.tar.xz -o "$RUNNER_TEMP/repak.tar.xz"
+          mkdir -p "$RUNNER_TEMP/repak" && tar -xJf "$RUNNER_TEMP/repak.tar.xz" -C "$RUNNER_TEMP/repak"
+          REPAK=$(find "$RUNNER_TEMP/repak" -type f -name 'repak*' -perm -111 | head -1)
+          test -n "$RETOC" && test -n "$REPAK"
+          echo "RETOC=$RETOC" >> "$GITHUB_ENV"
+          echo "REPAK=$REPAK" >> "$GITHUB_ENV"
+
+      - name: Convert UE5 IoStore to legacy pak
+        run: |
+          set +e
+          mkdir -p audit-out
+          "$RETOC" to-legacy "$PAKDIR" "$RUNNER_TEMP/ProjectAether-legacy.pak" > audit-out/to-legacy.log 2>&1
+          RC=$?
+          echo "$RC" > audit-out/to-legacy.rc
+          echo "retoc to-legacy rc=$RC"
+          tail -100 audit-out/to-legacy.log
+          if [ -f "$RUNNER_TEMP/ProjectAether-legacy.pak" ]; then
+            ls -lh "$RUNNER_TEMP/ProjectAether-legacy.pak"
+          fi
+          exit 0
+
+      - name: List legacy package paths
+        run: |
+          set +e
+          LEGACY="$RUNNER_TEMP/ProjectAether-legacy.pak"
+          if [ ! -f "$LEGACY" ]; then
+            echo 'legacy pak missing' > audit-out/repak-list.txt
+            exit 0
+          fi
+          "$REPAK" list "$LEGACY" > audit-out/repak-list.txt 2>&1
+          echo $? > audit-out/repak-list.rc
+          python3 - <<'PY'
+          import json, pathlib
+          txt=pathlib.Path('audit-out/repak-list.txt').read_text(encoding='utf-8',errors='replace')
+          lines=[x.strip() for x in txt.splitlines() if x.strip()]
+          exact=[]
+          categories={k:[] for k in ['nacht','prototype','zombie','map','level','weapon','thompson','barrier','window','spawn','anim','material','mesh','sound','audio','fx']}
+          for x in lines:
+              lo=x.lower()
+              for k in categories:
+                  if k in lo:
+                      categories[k].append(x)
+              if 'nacht' in lo or 'prototype' in lo:
+                  exact.append(x)
+          report={
+            'entry_count':len(lines),
+            'nacht_or_prototype':exact[:5000],
+            'categories':{k:v[:5000] for k,v in categories.items()},
+            'head':lines[:200]
+          }
+          pathlib.Path('audit-out/package-index-report.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(report,indent=2)[:50000])
+          PY
+          exit 0
+
+      - name: Upload reports only
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-aether-legacy-package-index
+          path: audit-out/
+          if-no-files-found: error
+          retention-days: 7
