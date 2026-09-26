@@ -125,7 +125,9 @@ host.write_text(text, encoding="utf-8")
 
 # ---------------------------------------------------------------------------
 # Online pause menu: gameplay continues while the overlay is open. Reuse the
-# existing native scoreboard and expose only SETTINGS + QUIT MATCH.
+# existing native scoreboard and expose only SETTINGS + QUIT MATCH. This runs
+# after patch_vril_android.py, so the replacement deliberately preserves the
+# mobile Solo Save & Exit path from that earlier patch.
 # ---------------------------------------------------------------------------
 pause = source / "menu" / "menu_pause.c"
 text = pause.read_text(encoding="utf-8")
@@ -143,21 +145,30 @@ if "Xziel_Android_OnlineLeaveRoom" not in text:
     text = replace_once(text, pause_include, pause_include + pause_decls,
                         "pause Android declarations")
 
-pause_set_old = r'''void Menu_Pause_Set (void)
-{
-	Menu_ResetMenuButtons();
-	S_StopAllSounds(true);
-	Music_Pause();
-	Menu_SetSound(MENU_SND_ENTER);
+def replace_c_function(src: str, signature: str, replacement: str) -> str:
+    start = src.find(signature)
+    if start < 0:
+        raise SystemExit("Could not find " + signature)
+    brace = src.find("{", start)
+    if brace < 0:
+        raise SystemExit("Could not find body for " + signature)
+    depth = 0
+    end = -1
+    for i in range(brace, len(src)):
+        if src[i] == "{":
+            depth += 1
+        elif src[i] == "}":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+    if end < 0:
+        raise SystemExit("Could not find end for " + signature)
+    if end < len(src) and src[end] == ";":
+        end += 1
+    return src[:start] + replacement + src[end:]
 
-	menu_paus_submenu = 0;
-	loadingScreen = 0;
-	loadscreeninit = false;
-	key_dest = key_menu_pause;
-	m_state = m_pause;
-	m_previous_state = m_state;
-}'''
-pause_set_new = r'''void Menu_Pause_Set (void)
+pause_set = r'''void Menu_Pause_Set (void)
 {
 	Menu_ResetMenuButtons();
 #ifdef __ANDROID__
@@ -177,13 +188,31 @@ pause_set_new = r'''void Menu_Pause_Set (void)
 	key_dest = key_menu_pause;
 	m_state = m_pause;
 	m_previous_state = m_state;
+#ifdef __ANDROID__
+	// Solo still freezes exactly as before. Online maxclients > 1 keeps
+	// simulation and networking running behind this menu.
+	if (!Xziel_Android_OnlineActive() && sv.active && svs.maxclients == 1)
+		sv.paused = true;
+#endif
 }'''
-text = replace_once(text, pause_set_old, pause_set_new, "online pause set")
+text = replace_c_function(text, "void Menu_Pause_Set (void)", pause_set)
 
-pause_yes_anchor = r'''void Menu_Pause_Yes(void)
+online_confirm = r'''
+#ifdef __ANDROID__
+static void Menu_Pause_OnlineQuitConfirm(void)
 {
-    if (menu_paus_submenu == 1) {'''
-pause_yes_repl = r'''void Menu_Pause_Yes(void)
+	menu_paus_submenu = 9;
+	Menu_ResetMenuButtons();
+	Menu_SetSound(MENU_SND_ENTER);
+}
+#endif
+'''
+if "Menu_Pause_OnlineQuitConfirm" not in text:
+    anchor = "void Menu_Pause_Yes(void)\n"
+    text = replace_once(text, anchor, online_confirm + "\n" + anchor,
+                        "online quit confirm anchor")
+
+pause_yes = r'''void Menu_Pause_Yes(void)
 {
 #ifdef __ANDROID__
 	if (Xziel_Android_OnlineActive() && menu_paus_submenu == 9) {
@@ -193,13 +222,35 @@ pause_yes_repl = r'''void Menu_Pause_Yes(void)
 		return;
 	}
 #endif
-    if (menu_paus_submenu == 1) {'''
-text = replace_once(text, pause_yes_anchor, pause_yes_repl, "online pause quit")
 
-pause_draw_anchor = r'''void Menu_Pause_Draw (void)
-{
-    // Background'''
-pause_draw_repl = r'''void Menu_Pause_Draw (void)
+	if (menu_paus_submenu == 1) {
+		// User is restarting the map.
+		menu_paus_submenu = 0;
+		key_dest = key_game;
+		m_state = m_none;
+		m_previous_state = m_state;
+
+		if (music_paused)
+			Music_Resume();
+
+		SV_RestartServer ();
+	} else if (menu_paus_submenu ==
+#ifdef __ANDROID__
+		4
+#else
+		3
+#endif
+	) {
+		// User is returning to Main Menu.
+		menu_paus_submenu = 0;
+		Menu_ExitMap();
+	}
+
+	Menu_Pause_EnterSubMenu();
+}'''
+text = replace_c_function(text, "void Menu_Pause_Yes(void)", pause_yes)
+
+pause_draw = r'''void Menu_Pause_Draw (void)
 {
 #ifdef __ANDROID__
 	if (Xziel_Android_OnlineActive()) {
@@ -208,31 +259,78 @@ pause_draw_repl = r'''void Menu_Pause_Draw (void)
 		Menu_DrawCustomBackground (true);
 		Menu_DrawTitle ("ONLINE MATCH", MENU_COLOR_WHITE);
 
-		// Reuse NZ:P's authoritative multiplayer stats table.
+		// Native NZ:P scoreboard: Score, Kills, Downs, Revives,
+		// Headshots and ping for every connected player.
 		showscoreboard = true;
 		HUD_EndScreen();
 		showscoreboard = old_scoreboard;
 
 		if (menu_paus_submenu == 0) {
-			Menu_DrawButton (1, 0, "SETTINGS", "Adjust controls, audio and video.", Menu_Configuration);
-			Menu_DrawButton (2, 1, "QUIT MATCH", "Leave this online match.", Menu_Pause_EnterSubMenu);
+			Menu_DrawButton (1, 0, "SETTINGS",
+				"Adjust controls, audio and video.", Menu_Configuration);
+			Menu_DrawButton (2, 1, "QUIT MATCH",
+				"Leave this online match.", Menu_Pause_OnlineQuitConfirm);
 		} else {
 			Menu_DrawGreyButton (1, "SETTINGS");
 			Menu_DrawGreyButton (2, "QUIT MATCH");
-			Menu_DrawSubMenu("Leave online match?", "The other players will keep playing.");
+			Menu_DrawSubMenu("Leave online match?",
+				"The other players will keep playing.");
 			Menu_DrawButton (7, 0, "QUIT MATCH", "", Menu_Pause_Yes);
 			Menu_DrawButton (8, 1, "STAY", "", Menu_Pause_No);
 		}
-
-		// Reserve submenu id 9 for online quit confirmation.
-		if (menu_paus_submenu != 0 && menu_paus_submenu != 9)
-			menu_paus_submenu = 9;
 		return;
 	}
 #endif
 
-    // Background'''
-text = replace_once(text, pause_draw_anchor, pause_draw_repl, "online pause draw")
+	// Existing Solo pause menu.
+	Menu_DrawCustomBackground (true);
+	Menu_DrawTitle ("PAUSED", MENU_COLOR_WHITE);
+
+	if (menu_paus_submenu == 0) {
+		Menu_DrawButton (1, 0, "RESUME CARNAGE", "Return to Game.", Menu_Resume);
+		Menu_DrawButton (2, 1, "RESTART LEVEL",
+			"Tough luck? Give things another go.", Menu_Pause_EnterSubMenu);
+		Menu_DrawButton (3, 2, "OPTIONS",
+			"Tweak Game related Options.", Menu_Configuration);
+#ifdef __ANDROID__
+		Menu_DrawButton (4, 3, "SAVE & EXIT",
+			"Save current Solo state and return to Main Menu.", Menu_Pause_SaveAndExit);
+		Menu_DrawButton (5, 4, "EXIT TO MENU",
+			"Return to Main Menu without saving.", Menu_Pause_EnterSubMenu);
+#else
+		Menu_DrawButton (4, 3, "END GAME",
+			"Return to Main Menu.", Menu_Pause_EnterSubMenu);
+#endif
+	} else {
+		Menu_DrawGreyButton (1, "RESUME CARNAGE");
+		Menu_DrawGreyButton (2, "RESTART LEVEL");
+		Menu_DrawGreyButton (3, "OPTIONS");
+#ifdef __ANDROID__
+		Menu_DrawGreyButton (4, "SAVE & EXIT");
+		Menu_DrawGreyButton (5, "EXIT TO MENU");
+#else
+		Menu_DrawGreyButton (4, "END GAME");
+#endif
+
+		if (menu_paus_submenu == 1) {
+			Menu_DrawSubMenu("Are you sure you want to restart?",
+				"You will lose any progress that you have made.");
+		} else if (menu_paus_submenu ==
+#ifdef __ANDROID__
+			4
+#else
+			3
+#endif
+		) {
+			Menu_DrawSubMenu("Are you sure you want to quit?",
+				"You will lose any unsaved progress.");
+		}
+
+		Menu_DrawButton (7, 0, "GET ME OUTTA HERE!", "", Menu_Pause_Yes);
+		Menu_DrawButton (8, 1, "I WILL PERSEVERE", "", Menu_Pause_No);
+	}
+}'''
+text = replace_c_function(text, "void Menu_Pause_Draw (void)", pause_draw)
 pause.write_text(text, encoding="utf-8")
 
 # ---------------------------------------------------------------------------
