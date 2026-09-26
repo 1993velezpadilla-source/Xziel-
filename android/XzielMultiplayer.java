@@ -623,8 +623,6 @@ public final class XzielMultiplayer {
         serverReadyReceived = false;
         worldPhase = "lobby";
         worldRevision = 0;
-        worldPhase = "lobby";
-        worldRevision = 0;
         clientReadySent = false;
         ciReadySent = false;
         ciScenarioStarted = false;
@@ -999,6 +997,7 @@ public final class XzielMultiplayer {
             serverActive && selectedMap.equals(engineMap)) {
             serverReadySent = true;
             hostPreparing = false;
+            worldPhase = "live";
 
             JSONObject ready = new JSONObject();
             try {
@@ -1089,7 +1088,7 @@ public final class XzielMultiplayer {
                 if (ciEvidenceMode) voiceChat.sendCiTestTone();
             }, 3600);
             ciCommand(4400, "CI_P2_AIM_STOP", "-aim\n");
-            ciCommand(6000, "CI_SCENARIO_DONE", "");
+            ciCommand(7200, "CI_SCENARIO_DONE", "");
         } else if (localSlot == 3) {
             ciCommand(3000, "CI_P3_SPRINT_START", "impulse 23\n+forward\n");
             ciCommand(4000, "CI_P3_SPRINT_STOP", "-forward\nimpulse 24\n");
@@ -1107,7 +1106,7 @@ public final class XzielMultiplayer {
             }, 4000);
             ciCommand(4300, "CI_P4_FIRE_STOP", "-attack\n");
             ciCommand(4700, "CI_P4_AIM_STOP", "-aim\n");
-            ciCommand(6000, "CI_SCENARIO_DONE", "");
+            ciCommand(7200, "CI_SCENARIO_DONE", "");
         }
     }
 
@@ -1279,7 +1278,11 @@ public final class XzielMultiplayer {
         hostPreparing = false;
         serverReadySent = false;
         serverReadyReceived = false;
+        worldPhase = "lobby";
+        worldRevision = 0;
         clientReadySent = false;
+        ciReadySent = false;
+        ciScenarioStarted = false;
         voiceChat.leaveRoom();
         connectedSlots.clear();
         packetsByPort.clear();
