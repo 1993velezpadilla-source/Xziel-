@@ -10,6 +10,7 @@ on:
       - tools/hayuya3d/job_request.py
       - tools/hayuya3d/gpu_e2e.sh
       - tools/hayuya3d/phone_cloud_worker.py
+      - tools/hayuya3d/mesh_gate.py
       - tools/hayuya3d/trellis2_preview_recovery.py
       - tools/hayuya3d/blender_animation_gate.py
       - tools/hayuya3d/internet_asset_research.py
