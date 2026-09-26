@@ -124,6 +124,45 @@ float XzBo3WeaponSpec_SecondsPerBurstShot(
     return 60.0f / spec->cyclic_rpm;
 }
 
+float XzBo3WeaponSpec_BurstCycleSeconds(
+    const XzBo3WeaponSpec *spec)
+{
+    if (!spec ||
+        spec->burst_size <= 1u ||
+        !isfinite(spec->overall_rpm) ||
+        spec->overall_rpm <= 0.0f)
+        return 0.0f;
+
+    /*
+     * overall_rpm is rounds/minute including the pause between bursts.
+     * A complete burst cycle therefore occupies N round-periods.
+     */
+    return ((float)spec->burst_size * 60.0f) /
+        spec->overall_rpm;
+}
+
+float XzBo3WeaponSpec_BurstTailSeconds(
+    const XzBo3WeaponSpec *spec)
+{
+    float cycle;
+    float internal;
+    float tail;
+
+    if (!spec || spec->burst_size <= 1u)
+        return 0.0f;
+
+    cycle = XzBo3WeaponSpec_BurstCycleSeconds(spec);
+    internal =
+        ((float)(spec->burst_size - 1u)) *
+        XzBo3WeaponSpec_SecondsPerBurstShot(spec);
+
+    if (cycle <= 0.0f || internal < 0.0f)
+        return 0.0f;
+
+    tail = cycle - internal;
+    return tail > 0.0f ? tail : 0.0f;
+}
+
 int XzBo3WeaponSpec_SelfTest(void)
 {
     const XzBo3WeaponSpec *rk5;
@@ -201,6 +240,16 @@ int XzBo3WeaponSpec_SelfTest(void)
     if (fabsf(
             XzBo3WeaponSpec_SecondsPerShot(pharo) -
             (60.0f / 659.0f)) > 0.00001f)
+        return 0;
+
+    if (fabsf(
+            XzBo3WeaponSpec_BurstTailSeconds(rk5) -
+            0.100245f) > 0.0002f)
+        return 0;
+
+    if (fabsf(
+            XzBo3WeaponSpec_BurstTailSeconds(pharo) -
+            0.166169f) > 0.0002f)
         return 0;
 
     return 1;
