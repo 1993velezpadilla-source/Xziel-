@@ -41,7 +41,9 @@
     "mysteryBoxRuntimeCapacity": 64,
     "reusablePerkPrimitiveCount": 7,
     "reusablePowerupPrimitiveCount": 7,
-    "xzielPowerupLogicPrimitiveCount": 8
+    "xzielPowerupLogicPrimitiveCount": 8,
+    "gobbleGumLoadoutSize": 5,
+    "gobbleGumMaxRollsPerRound": 3
   },
   "bo3ChroniclesFeatureReference": {
     "mysteryBox": true,
@@ -106,10 +108,18 @@
       "remaining": "Activate each BO3 reward only after its gameplay/presentation lanes are complete, then validate weapon award and teddy flow on Android."
     },
     "gobblegum_machines_and_full_effect_runtime": {
-      "state": "pending",
+      "state": "partial",
       "identityCatalogCount": 63,
       "machinePlacements": 2,
-      "effectSpecsReady": 0
+      "effectSpecsReady": 0,
+      "economyCoreStatus": "logic_ready",
+      "selectionCoreStatus": "logic_ready",
+      "loadoutSize": 5,
+      "maxRollsPerRound": 3,
+      "firstRollFree": true,
+      "machineInteractionStatus": "pending",
+      "effectDispatchReady": 0,
+      "presentationStatus": "pending"
     },
     "der_wunderfizz_and_perk_randomization": {
       "state": "pending",
