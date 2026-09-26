@@ -32,6 +32,7 @@ on:
       - feature/xz-special-raster-suppress
       - feature/xz-full-world-raster-retirement
       - feature/xziel-engine-nacht-runtime-v1
+      - feature/xziel-weapon-catalog-v1
     paths:
       - ".github/workflows/android-native.yml"
       - "android/**"

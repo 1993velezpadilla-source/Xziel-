@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feature/xziel-engine-nacht-runtime-v1
+      - feature/xziel-weapon-catalog-v1
     paths:
       - "assets/nacht_reference/**"
       - "assets/weapons/**"
