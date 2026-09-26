@@ -426,7 +426,7 @@ if switch_marker not in weapon_core:
     )
 
 # BO3 disables offhand weapons. NZ:P's primary grenade input is button3.
-grenade_marker = "// XZIEL_GOBBLEGUM_DISORDERLY_BLOCK_OFFHAND"
+grenade_marker = "// XZIEL_GOBBLEGUM_DISORDERLY_BLOCK_GRENADE_INPUT"
 if grenade_marker not in weapon_core:
     anchor = '''	// Grenade Button Pressed
 	if (self.button3) {
@@ -438,7 +438,7 @@ if grenade_marker not in weapon_core:
         anchor,
         '''	// Grenade Button Pressed
 	if (self.button3) {
-        // XZIEL_GOBBLEGUM_DISORDERLY_BLOCK_OFFHAND
+        // XZIEL_GOBBLEGUM_DISORDERLY_BLOCK_GRENADE_INPUT
         if (!self.xziel_gum_disorderly_active)
 		    WeaponCore_GrenadeButtonPressed();
 ''',
