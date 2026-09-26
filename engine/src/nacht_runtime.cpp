@@ -27,6 +27,9 @@ NachtRuntime::NachtRuntime(
     (void) purchases_.setCatalog(
         nachtReferenceProfile().purchases);
 
+    (void) doors_.setCatalog(
+        nachtReferenceProfile().doors);
+
     reset();
 }
 
@@ -36,6 +39,8 @@ void NachtRuntime::reset() noexcept {
 
     activeZones_ =
         kNachtStartZoneMask;
+
+    doors_.reset();
 
     (void) refreshSpawnCatalog();
     horde_.reset();
@@ -97,6 +102,41 @@ PurchaseResult NachtRuntime::tryPurchase(
         points_);
 }
 
+std::optional<DoorCandidate>
+NachtRuntime::queryDoor(
+    Vec3 playerPosition) const noexcept {
+    return doors_.queryNearest(
+        playerPosition,
+        points_,
+        static_cast<MapZoneMask>(
+            activeZones_));
+}
+
+DoorResult NachtRuntime::tryOpenDoor(
+    std::size_t index,
+    Vec3 playerPosition) noexcept {
+    auto result =
+        doors_.tryOpen(
+            index,
+            playerPosition,
+            points_,
+            static_cast<MapZoneMask>(
+                activeZones_));
+
+    if (result.code !=
+        DoorResultCode::Success) {
+        return result;
+    }
+
+    activeZones_ |=
+        static_cast<NachtZoneMask>(
+            result.unlockZoneMask);
+
+    (void) refreshSpawnCatalog();
+
+    return result;
+}
+
 HordeDirector& NachtRuntime::horde() noexcept {
     return horde_;
 }
@@ -109,6 +149,11 @@ NachtRuntime::horde() const noexcept {
 const PurchaseSystem&
 NachtRuntime::purchases() const noexcept {
     return purchases_;
+}
+
+const DoorSystem&
+NachtRuntime::doors() const noexcept {
+    return doors_;
 }
 
 std::uint32_t NachtRuntime::points() const noexcept {
