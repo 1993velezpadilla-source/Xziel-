@@ -170,29 +170,53 @@ jobs:
           "$ADB" shell am start -W \
             -n com.xziel.nzp/org.libsdl.app.NZPActivity \
             --ez xziel_ci_public_match true \
+            --ez xziel_ci_evidence_mode true \
             --es xziel_ci_match_queue "$QUEUE" \
             --es xziel_ci_player_id "ci-${GITHUB_RUN_ID}-p${{ matrix.runner }}" \
             > "evidence/am-start-${{ matrix.runner }}.txt" 2>&1
 
-          # The first queue arrival becomes slot 1/host. Host success requires
-          # all three remote clients to complete their Quake signon. Every
-          # other runner must report SIGNON_COMPLETE.
+          # Evidence mode waits for the synchronized gameplay sequence, not just
+          # the lobby handshake. Slot 1 automatically moves away from spawn,
+          # turns back toward the group, and observes walk/sprint/ADS/fire.
           SUCCESS=0
-          for i in $(seq 1 120); do
+          CAMERA_SHOT=0
+          SPRINT_SHOT=0
+          AIM_SHOT=0
+          FIRE_SHOT=0
+
+          for i in $(seq 1 180); do
             "$ADB" logcat -d -v brief > "evidence/logcat-${{ matrix.runner }}.txt" || true
+            LOG="evidence/logcat-${{ matrix.runner }}.txt"
 
-            VOICE_OPEN=0
-            if grep -q "XzielVoice.*VOICE_OPEN" "evidence/logcat-${{ matrix.runner }}.txt"; then
-              VOICE_OPEN=1
+            if [[ "$CAMERA_SHOT" = "0" ]] && grep -q "XzielOnline.*CI_CAMERA_READY" "$LOG"; then
+              "$ADB" exec-out screencap -p > "evidence/ci-camera-player-${{ matrix.runner }}.png" || true
+              CAMERA_SHOT=1
             fi
 
-            if grep -q "XzielOnline.*SIGNON_COMPLETE" "evidence/logcat-${{ matrix.runner }}.txt" && [[ "$VOICE_OPEN" = "1" ]]; then
-              SUCCESS=1
-              break
+            if [[ "$CAMERA_SHOT" = "1" && "$SPRINT_SHOT" = "0" ]] && \
+               grep -q "XzielOnline.*CI_REMOTE_ACTION.*CI_P3_SPRINT_START" "$LOG"; then
+              "$ADB" exec-out screencap -p > "evidence/ci-sprint-player-${{ matrix.runner }}.png" || true
+              SPRINT_SHOT=1
             fi
 
-            READY_COUNT="$(grep -c "XzielOnline.*CLIENT_READY host=1" "evidence/logcat-${{ matrix.runner }}.txt" || true)"
-            if [[ "$READY_COUNT" -ge 3 && "$VOICE_OPEN" = "1" ]]; then
+            if [[ "$CAMERA_SHOT" = "1" && "$AIM_SHOT" = "0" ]] && \
+               grep -q "XzielOnline.*CI_REMOTE_ACTION.*CI_P2_AIM_START" "$LOG"; then
+              "$ADB" exec-out screencap -p > "evidence/ci-aim-player-${{ matrix.runner }}.png" || true
+              AIM_SHOT=1
+            fi
+
+            if [[ "$CAMERA_SHOT" = "1" && "$FIRE_SHOT" = "0" ]] && \
+               grep -q "XzielOnline.*CI_REMOTE_ACTION.*CI_P4_FIRE_START" "$LOG"; then
+              "$ADB" exec-out screencap -p > "evidence/ci-fire-player-${{ matrix.runner }}.png" || true
+              FIRE_SHOT=1
+            fi
+
+            REMOTE_SEEN="$(grep "XzielOnline.*CI_REMOTE_SEEN" "$LOG" | \
+              sed -n 's/.* remote=\([1-4]\).*/\1/p' | sort -u | wc -l | tr -d ' ')"
+            VOICE_PLAY="$(grep -c "XzielVoice.*CI_VOICE_PLAY" "$LOG" || true)"
+
+            if grep -q "XzielOnline.*CI_SCENARIO_DONE" "$LOG" && \
+               [[ "$REMOTE_SEEN" -ge 2 ]] && [[ "$VOICE_PLAY" -ge 1 ]]; then
               SUCCESS=1
               break
             fi
@@ -200,18 +224,86 @@ jobs:
           done
 
           "$ADB" exec-out screencap -p > "evidence/player-${{ matrix.runner }}.png" || true
+
+          # Prove the two small HUD voice controls are interactive.
+          "$ADB" shell uiautomator dump /sdcard/xziel-hud.xml >/dev/null 2>&1 || true
+          "$ADB" pull /sdcard/xziel-hud.xml "evidence/hud-ui-${{ matrix.runner }}.xml" >/dev/null 2>&1 || true
+          python3 - "evidence/hud-ui-${{ matrix.runner }}.xml" "evidence/hud-taps-${{ matrix.runner }}.txt" <<'PY'
+          import re, sys
+          from pathlib import Path
+          src, out = map(Path, sys.argv[1:3])
+          text = src.read_text(errors="ignore") if src.exists() else ""
+          coords = []
+          for label in ("Mute microphone", "Mute voice audio"):
+              m = re.search(r'content-desc="' + re.escape(label) + r'"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', text)
+              if m:
+                  x1,y1,x2,y2 = map(int,m.groups())
+                  coords.append((label,(x1+x2)//2,(y1+y2)//2))
+          out.write_text("\n".join(f"{label}|{x}|{y}" for label,x,y in coords))
+          PY
+
+          while IFS='|' read -r LABEL X Y; do
+            [[ -n "$X" && -n "$Y" ]] || continue
+            "$ADB" shell input tap "$X" "$Y"
+            sleep 1
+          done < "evidence/hud-taps-${{ matrix.runner }}.txt"
+          "$ADB" exec-out screencap -p > "evidence/hud-voice-muted-${{ matrix.runner }}.png" || true
+
+          # Restore the global HUD voice toggles so the pause mixer starts live.
+          while IFS='|' read -r LABEL X Y; do
+            [[ -n "$X" && -n "$Y" ]] || continue
+            "$ADB" shell input tap "$X" "$Y"
+            sleep 1
+          done < "evidence/hud-taps-${{ matrix.runner }}.txt"
+
+          # Press the real in-game pause control. Online gameplay must continue;
+          # the menu shows the native scoreboard plus the per-player voice grid.
+          SIZE="$("$ADB" shell wm size | grep -oE '[0-9]+x[0-9]+' | tail -n 1 | tr -d '\r')"
+          WIDTH="${SIZE%x*}"
+          HEIGHT="${SIZE#*x}"
+          PAUSE_X=$((WIDTH * 965 / 1000))
+          PAUSE_Y=$((HEIGHT * 75 / 1000))
+          "$ADB" shell input tap "$PAUSE_X" "$PAUSE_Y"
+          sleep 2
+          "$ADB" exec-out screencap -p > "evidence/online-pause-${{ matrix.runner }}.png" || true
+
+          "$ADB" shell uiautomator dump /sdcard/xziel-pause.xml >/dev/null 2>&1 || true
+          "$ADB" pull /sdcard/xziel-pause.xml "evidence/pause-ui-${{ matrix.runner }}.xml" >/dev/null 2>&1 || true
+          python3 - "evidence/pause-ui-${{ matrix.runner }}.xml" "evidence/player-mute-tap-${{ matrix.runner }}.txt" <<'PY'
+          import re, sys
+          from pathlib import Path
+          src, out = map(Path, sys.argv[1:3])
+          text = src.read_text(errors="ignore") if src.exists() else ""
+          m = re.search(r'content-desc="Mute Player ([1-4])"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', text)
+          if m:
+              slot,x1,y1,x2,y2 = map(int,m.groups())
+              out.write_text(f"{slot} {(x1+x2)//2} {(y1+y2)//2}\n")
+          else:
+              out.write_text("")
+          PY
+
+          if [[ -s "evidence/player-mute-tap-${{ matrix.runner }}.txt" ]]; then
+            read -r MUTED_SLOT MX MY < "evidence/player-mute-tap-${{ matrix.runner }}.txt"
+            "$ADB" shell input tap "$MX" "$MY"
+            sleep 1
+            "$ADB" exec-out screencap -p > "evidence/online-pause-muted-${{ matrix.runner }}.png" || true
+          fi
+
           "$ADB" logcat -d -v threadtime > "evidence/logcat-${{ matrix.runner }}.txt" || true
 
           {
             echo "runner=${{ matrix.runner }}"
             echo "queue=$QUEUE"
-            grep -E "(XzielOnline.*(WELCOME|PLAYER_JOINED|HOST_PREPARE|HOST_SERVER_READY|SERVER_READY|CONNECT_START|CONNECT_RETRY|SIGNON_COMPLETE|CLIENT_READY)|XzielVoice.*(VOICE_OPEN|CAPTURE_STARTED|PLAYER_MUTE))" \
+            grep -E "(XzielOnline.*(WELCOME|PLAYER_JOINED|HOST_PREPARE|HOST_SERVER_READY|SERVER_READY|CONNECT_START|CONNECT_RETRY|SIGNON_COMPLETE|CLIENT_READY|CI_)|XzielVoice.*(VOICE_OPEN|CAPTURE_STARTED|CI_TONE_SENT|CI_VOICE_PLAY|CI_VOICE_OUT_OF_RANGE|MIC_MUTED|SPEAKER_MUTED|PLAYER_MUTE))" \
               "evidence/logcat-${{ matrix.runner }}.txt" || true
           } > "evidence/online-summary-${{ matrix.runner }}.txt"
 
           PID="$("$ADB" shell pidof com.xziel.nzp 2>/dev/null | tr -d '\r' || true)"
           test -n "$PID"
           test "$SUCCESS" = "1"
+          test -s "evidence/hud-taps-${{ matrix.runner }}.txt"
+          test -s "evidence/player-mute-tap-${{ matrix.runner }}.txt"
+          grep -q "XzielVoice.*PLAYER_MUTE" "evidence/logcat-${{ matrix.runner }}.txt"
 
       - name: Validate screenshot
         shell: bash
