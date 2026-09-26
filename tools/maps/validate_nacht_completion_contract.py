@@ -31,6 +31,7 @@ POWERUP_CATALOG = ROOT / "assets/nacht_reference/bo3_powerup_catalog_v1.json"
 WEAPON_ID_REGISTRY = ROOT / "assets/weapons/xziel_weapon_id_registry_v1.json"
 RUNTIME_BOX_POOL = ROOT / "assets/weapons/xziel_mystery_box_runtime_pool_v1.json"
 RUNTIME_CAPABILITIES = ROOT / "assets/nacht_reference/xziel_zombies_runtime_capabilities_v1.json"
+DEATH_MACHINE_SPEC = ROOT / "assets/nacht_reference/bo3_death_machine_spec_v1.json"
 
 ALLOWED_STATES = {
     "pending",
@@ -88,6 +89,7 @@ def main() -> int:
     weapon_id_registry = load(WEAPON_ID_REGISTRY)
     runtime_box_pool = load(RUNTIME_BOX_POOL)
     runtime_capabilities = load(RUNTIME_CAPABILITIES)
+    death_machine_spec = load(DEATH_MACHINE_SPEC)
 
     if contract.get("schemaVersion") != 1:
         fail("schemaVersion must be 1")
@@ -297,6 +299,15 @@ def main() -> int:
         if primitive.get("available") is not expected:
             fail(f"power-up runtime primitive drift for {row['id']}")
 
+    if death_machine_spec.get("logicalItemId") != "special_death_machine":
+        fail("Death Machine special behavior spec identity drift")
+    if death_machine_spec.get("durationSeconds") != 30:
+        fail("Death Machine duration contract drift")
+    if death_machine_spec.get("packAPunchEligible") is not False:
+        fail("Death Machine must remain non-Pack-a-Punchable")
+    if baseline.get("specialWeaponBehaviorSpecCount") != 1:
+        fail("specialWeaponBehaviorSpecCount drift")
+
     if baseline.get("catalogWeaponCount") != len(weapons):
         fail(
             f"catalogWeaponCount={baseline.get('catalogWeaponCount')} "
@@ -332,7 +343,12 @@ def main() -> int:
             if state not in ALLOWED_STATES:
                 fail(f"{wid}.{lane} has invalid state {state!r}")
 
-        if wid in set(spec_ids):
+        has_wall_behavior_spec = wid in set(spec_ids)
+        has_special_behavior_spec = (
+            wid == death_machine_spec.get("logicalItemId")
+            and death_machine_spec.get("specId") == "bo3_death_machine_powerup_weapon_v1"
+        )
+        if has_wall_behavior_spec or has_special_behavior_spec:
             if lanes["behavior_spec"] not in {"cataloged", "ready"}:
                 fail(
                     f"{wid}.behavior_spec={lanes['behavior_spec']!r} "
