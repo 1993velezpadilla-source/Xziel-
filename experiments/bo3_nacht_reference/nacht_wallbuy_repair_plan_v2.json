@@ -1,0 +1,396 @@
+{
+  "schema": 2,
+  "authority": "BO3 Zombies Chronicles purchase layout reconstructed from Pavlov Workshop 2755515831 metadata and preserved chalk geometry. Three functional WallBuy_C actors are authoritative anchors; six omitted interactions are derived by calibrated marker geometry. This is not Treyarch source data.",
+  "source": {
+    "workshop_id": "2755515831",
+    "map": "Nacht_de_Untoten.umap",
+    "engine": "UE4.21",
+    "resolver_workflow_run": 36226521409,
+    "resolver_artifact_id": 10900358426,
+    "chalk_bounds_workflow_run": 36227274245,
+    "chalk_bounds_artifact_id": 10901068400
+  },
+  "coordinate_system": {
+    "source": "Unreal centimeters",
+    "xziel": "meters, Z-up, source UE Y reflected",
+    "conversion": "XZIEL=(UE.x/100,-UE.y/100,UE.z/100)"
+  },
+  "calibration": {
+    "perm": [
+      0,
+      2,
+      1
+    ],
+    "signs": [
+      1,
+      1,
+      1
+    ],
+    "scale": 99.98562427192498,
+    "translation": [
+      -0.053916712807108524,
+      -1.3952357384873721,
+      -3.2566920681031206
+    ],
+    "rmse_cm": 3.642585764715487,
+    "anchors": [
+      "arak",
+      "kuda",
+      "triton"
+    ]
+  },
+  "validation": {
+    "slot_count": 9,
+    "functional_actor_slots": 3,
+    "geometry_derived_slots": 6,
+    "weapon_or_cabinet_slots": 8,
+    "equipment_slots": 1,
+    "unresolved_slot_count": 0,
+    "duplicate_marker_exports": {},
+    "gate": "PASS"
+  },
+  "purchase_slots": [
+    {
+      "id": "purchase_arak",
+      "canonical": "KN-44",
+      "type": "wallbuy",
+      "bo3_weapon_id": "ar_standard",
+      "pavlov_weapon_id": "kn44",
+      "price": 1400,
+      "room_group": "spawn",
+      "source_marker": "arak",
+      "chalk_asset": "zm_prototype_part4_t7_zm_chalk_buy_arak",
+      "functional_actor": "WallBuy2_2",
+      "interaction_location_ue_cm": {
+        "x": -570.94189453125,
+        "y": -2645.71630859375,
+        "z": 499.06719970703125
+      },
+      "interaction_location_xziel_m": {
+        "x": -5.709419,
+        "y": 26.457163,
+        "z": 4.990672
+      },
+      "surface_normal_ue": {
+        "x": 1,
+        "y": 0,
+        "z": 0
+      },
+      "yaw_candidates_ue_deg": [
+        0,
+        180
+      ],
+      "orientation_policy": "choose yaw candidate facing reachable/navmesh free space",
+      "placement_source": "functional_wallbuy_actor",
+      "placement_confidence": "authoritative_port_actor",
+      "reconstructed": false,
+      "needs_geometry_resolution": false,
+      "interaction_radius_cm": 150,
+      "replicationPolicy": "server_authoritative"
+    },
+    {
+      "id": "purchase_argus",
+      "canonical": "Argus",
+      "type": "wallbuy",
+      "bo3_weapon_id": "shotgun_precision",
+      "pavlov_weapon_id": "argus",
+      "price": 1100,
+      "room_group": "help_2f",
+      "source_marker": "argus",
+      "chalk_asset": "zm_prototype_part4_t7_zm_chalk_buy_argus",
+      "functional_actor": null,
+      "interaction_location_ue_cm": {
+        "x": 1862.4507609352008,
+        "y": -2568.3309689222215,
+        "z": 570.7007454157504
+      },
+      "interaction_location_xziel_m": {
+        "x": 18.624508,
+        "y": 25.68331,
+        "z": 5.707007
+      },
+      "surface_normal_ue": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "yaw_candidates_ue_deg": [
+        90,
+        270
+      ],
+      "orientation_policy": "choose yaw candidate facing reachable/navmesh free space",
+      "placement_source": "calibrated_marker_mesh_bounds",
+      "placement_confidence": "geometry_derived",
+      "reconstructed": true,
+      "needs_geometry_resolution": false,
+      "interaction_radius_cm": 150,
+      "replicationPolicy": "server_authoritative"
+    },
+    {
+      "id": "purchase_frag",
+      "canonical": "Fragmentation Grenades",
+      "type": "equipment",
+      "bo3_weapon_id": "frag_grenade",
+      "pavlov_weapon_id": "frag",
+      "price": 250,
+      "room_group": "grenade_room",
+      "source_marker": "frag",
+      "chalk_asset": "zm_prototype_part4_t7_zm_chalk_buy_frag",
+      "functional_actor": null,
+      "interaction_location_ue_cm": {
+        "x": -396.0459925376089,
+        "y": 309.8613153425634,
+        "z": 504.670271604978
+      },
+      "interaction_location_xziel_m": {
+        "x": -3.96046,
+        "y": -3.098613,
+        "z": 5.046703
+      },
+      "surface_normal_ue": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "yaw_candidates_ue_deg": [
+        90,
+        270
+      ],
+      "orientation_policy": "choose yaw candidate facing reachable/navmesh free space",
+      "placement_source": "calibrated_marker_mesh_bounds",
+      "placement_confidence": "geometry_derived",
+      "reconstructed": true,
+      "needs_geometry_resolution": false,
+      "interaction_radius_cm": 150,
+      "replicationPolicy": "server_authoritative"
+    },
+    {
+      "id": "purchase_krm",
+      "canonical": "KRM-262",
+      "type": "wallbuy",
+      "bo3_weapon_id": "shotgun_pump",
+      "pavlov_weapon_id": "krm",
+      "price": 750,
+      "room_group": "help_1f",
+      "source_marker": "krm",
+      "chalk_asset": "zm_prototype_part4_t7_zm_chalk_buy_krm",
+      "functional_actor": null,
+      "interaction_location_ue_cm": {
+        "x": 2635.2487186904445,
+        "y": -1963.2631639157228,
+        "z": 144.04212000717695
+      },
+      "interaction_location_xziel_m": {
+        "x": 26.352487,
+        "y": 19.632632,
+        "z": 1.440421
+      },
+      "surface_normal_ue": {
+        "x": 1,
+        "y": 0,
+        "z": 0
+      },
+      "yaw_candidates_ue_deg": [
+        0,
+        180
+      ],
+      "orientation_policy": "choose yaw candidate facing reachable/navmesh free space",
+      "placement_source": "calibrated_marker_mesh_bounds",
+      "placement_confidence": "geometry_derived",
+      "reconstructed": true,
+      "needs_geometry_resolution": false,
+      "interaction_radius_cm": 150,
+      "replicationPolicy": "server_authoritative"
+    },
+    {
+      "id": "purchase_kuda",
+      "canonical": "Kuda",
+      "type": "wallbuy",
+      "bo3_weapon_id": "smg_standard",
+      "pavlov_weapon_id": "kuda",
+      "price": 1250,
+      "room_group": "help_1f",
+      "source_marker": "kuda",
+      "chalk_asset": "zm_prototype_part4_t7_zm_chalk_buy_kuda",
+      "functional_actor": "WallBuy3_2",
+      "interaction_location_ue_cm": {
+        "x": 2404.990234375,
+        "y": -2562.860107421875,
+        "z": 136.02821350097656
+      },
+      "interaction_location_xziel_m": {
+        "x": 24.049902,
+        "y": 25.628601,
+        "z": 1.360282
+      },
+      "surface_normal_ue": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "yaw_candidates_ue_deg": [
+        90,
+        270
+      ],
+      "orientation_policy": "use authored actor rotation",
+      "placement_source": "functional_wallbuy_actor",
+      "placement_confidence": "authoritative_port_actor",
+      "reconstructed": false,
+      "needs_geometry_resolution": false,
+      "interaction_radius_cm": 150,
+      "replicationPolicy": "server_authoritative"
+    },
+    {
+      "id": "purchase_locus_decal",
+      "canonical": "Locus",
+      "type": "sniper_cabinet",
+      "bo3_weapon_id": "sniper_fastbolt",
+      "pavlov_weapon_id": "locus",
+      "price": 5000,
+      "room_group": "help_2f",
+      "source_marker": "locus_decal",
+      "chalk_asset": "zm_prototype_part4_t7_zm_chalk_buy_locus_decal",
+      "functional_actor": null,
+      "interaction_location_ue_cm": {
+        "x": 1425.6981037611695,
+        "y": -2252.528596019651,
+        "z": 437.6229337848837
+      },
+      "interaction_location_xziel_m": {
+        "x": 14.256981,
+        "y": 22.525286,
+        "z": 4.376229
+      },
+      "surface_normal_ue": {
+        "x": 1,
+        "y": 0,
+        "z": 0
+      },
+      "yaw_candidates_ue_deg": [
+        0,
+        180
+      ],
+      "orientation_policy": "choose yaw candidate facing reachable/navmesh free space",
+      "placement_source": "calibrated_marker_mesh_bounds",
+      "placement_confidence": "geometry_derived",
+      "reconstructed": true,
+      "needs_geometry_resolution": false,
+      "interaction_radius_cm": 150,
+      "replicationPolicy": "server_authoritative"
+    },
+    {
+      "id": "purchase_pharaoh",
+      "canonical": "Pharo",
+      "type": "wallbuy",
+      "bo3_weapon_id": "smg_burst",
+      "pavlov_weapon_id": "pharaoh",
+      "price": 700,
+      "room_group": "grenade_room",
+      "source_marker": "pharaoh",
+      "chalk_asset": "zm_prototype_part4_t7_zm_chalk_buy_pharaoh",
+      "functional_actor": null,
+      "interaction_location_ue_cm": {
+        "x": 542.4383897261544,
+        "y": -1131.6591832493614,
+        "z": 504.670271604978
+      },
+      "interaction_location_xziel_m": {
+        "x": 5.424384,
+        "y": 11.316592,
+        "z": 5.046703
+      },
+      "surface_normal_ue": {
+        "x": 1,
+        "y": 0,
+        "z": 0
+      },
+      "yaw_candidates_ue_deg": [
+        0,
+        180
+      ],
+      "orientation_policy": "choose yaw candidate facing reachable/navmesh free space",
+      "placement_source": "calibrated_marker_mesh_bounds",
+      "placement_confidence": "geometry_derived",
+      "reconstructed": true,
+      "needs_geometry_resolution": false,
+      "interaction_radius_cm": 150,
+      "replicationPolicy": "server_authoritative"
+    },
+    {
+      "id": "purchase_shiva",
+      "canonical": "Sheiva",
+      "type": "wallbuy",
+      "bo3_weapon_id": "ar_marksman",
+      "pavlov_weapon_id": "shiva",
+      "price": 500,
+      "room_group": "spawn",
+      "source_marker": "shiva",
+      "chalk_asset": "zm_prototype_part4_t7_zm_chalk_buy_shiva",
+      "functional_actor": null,
+      "interaction_location_ue_cm": {
+        "x": -523.2186912031551,
+        "y": -605.8282948568745,
+        "z": 144.04212596678457
+      },
+      "interaction_location_xziel_m": {
+        "x": -5.232187,
+        "y": 6.058283,
+        "z": 1.440421
+      },
+      "surface_normal_ue": {
+        "x": 1,
+        "y": 0,
+        "z": 0
+      },
+      "yaw_candidates_ue_deg": [
+        0,
+        180
+      ],
+      "orientation_policy": "choose yaw candidate facing reachable/navmesh free space",
+      "placement_source": "calibrated_marker_mesh_bounds",
+      "placement_confidence": "geometry_derived",
+      "reconstructed": true,
+      "needs_geometry_resolution": false,
+      "interaction_radius_cm": 150,
+      "replicationPolicy": "server_authoritative"
+    },
+    {
+      "id": "purchase_triton",
+      "canonical": "RK5",
+      "type": "wallbuy",
+      "bo3_weapon_id": "pistol_burst",
+      "pavlov_weapon_id": "triton",
+      "price": 500,
+      "room_group": "spawn",
+      "source_marker": "triton",
+      "chalk_asset": "zm_prototype_part4_t7_zm_chalk_buy_triton",
+      "functional_actor": "WallBuy_2",
+      "interaction_location_ue_cm": {
+        "x": -248.919921875,
+        "y": 1034.3101806640625,
+        "z": 141.15147399902344
+      },
+      "interaction_location_xziel_m": {
+        "x": -2.489199,
+        "y": -10.343102,
+        "z": 1.411515
+      },
+      "surface_normal_ue": {
+        "x": 1,
+        "y": 0,
+        "z": 0
+      },
+      "yaw_candidates_ue_deg": [
+        0,
+        180
+      ],
+      "orientation_policy": "choose yaw candidate facing reachable/navmesh free space",
+      "placement_source": "functional_wallbuy_actor",
+      "placement_confidence": "authoritative_port_actor",
+      "reconstructed": false,
+      "needs_geometry_resolution": false,
+      "interaction_radius_cm": 150,
+      "replicationPolicy": "server_authoritative"
+    }
+  ]
+}
