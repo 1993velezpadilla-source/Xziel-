@@ -117,13 +117,28 @@ public final class XzielVoiceChat {
 
         if (baseUrl.isEmpty() || roomCode.isEmpty() || localSlot < 1) return;
 
-        String wsUrl = websocketBase() + "/voice/" + roomCode +
+        openVoiceSocket();
+    }
+
+    private void openVoiceSocket() {
+        if (baseUrl.isEmpty() || roomCode.isEmpty() || localSlot < 1 ||
+            voiceSocket != null) {
+            return;
+        }
+
+        final String expectedRoom = roomCode;
+        final int expectedSlot = localSlot;
+        String wsUrl = websocketBase() + "/voice/" + expectedRoom +
             "?playerId=" + playerId;
         Request request = new Request.Builder().url(wsUrl).build();
 
         voiceSocket = http.newWebSocket(request, new WebSocketListener() {
             @Override
             public void onOpen(WebSocket webSocket, Response response) {
+                if (!expectedRoom.equals(roomCode) || expectedSlot != localSlot) {
+                    try { webSocket.close(1000, "stale"); } catch (Exception ignored) {}
+                    return;
+                }
                 Log.i(TAG, "VOICE_OPEN slot=" + localSlot + " room=" + roomCode);
                 showHudControls();
                 if (!micMuted.get()) startCaptureIfPermitted();
@@ -131,23 +146,39 @@ public final class XzielVoiceChat {
 
             @Override
             public void onMessage(WebSocket webSocket, ByteString bytes) {
-                handleVoicePacket(bytes.toByteArray());
+                if (voiceSocket == webSocket) {
+                    handleVoicePacket(bytes.toByteArray());
+                }
             }
 
             @Override
             public void onFailure(WebSocket webSocket, Throwable t, Response response) {
                 if (voiceSocket == webSocket) voiceSocket = null;
                 stopCapture();
-                Log.w(TAG, "VOICE_FAILURE slot=" + localSlot, t);
+                Log.w(TAG, "VOICE_FAILURE slot=" + expectedSlot, t);
+                scheduleReconnect(expectedRoom, expectedSlot);
             }
 
             @Override
             public void onClosed(WebSocket webSocket, int code, String reason) {
                 if (voiceSocket == webSocket) voiceSocket = null;
                 stopCapture();
-                Log.i(TAG, "VOICE_CLOSED slot=" + localSlot + " reason=" + reason);
+                Log.i(TAG, "VOICE_CLOSED slot=" + expectedSlot + " reason=" + reason);
+                scheduleReconnect(expectedRoom, expectedSlot);
             }
         });
+    }
+
+    private void scheduleReconnect(String expectedRoom, int expectedSlot) {
+        activity.getWindow().getDecorView().postDelayed(() -> {
+            if (voiceSocket == null &&
+                expectedRoom.equals(roomCode) &&
+                expectedSlot == localSlot &&
+                localSlot >= 1) {
+                Log.i(TAG, "VOICE_RECONNECT slot=" + localSlot);
+                openVoiceSocket();
+            }
+        }, 1500);
     }
 
     public void setPlayerConnected(int slot, boolean connected) {
@@ -644,6 +675,13 @@ public final class XzielVoiceChat {
     }
 
     public void leaveRoom() {
+        // Clear room identity before closing so onClosed cannot schedule a
+        // reconnect for an intentionally-left room.
+        roomCode = "";
+        playerId = "";
+        localSlot = 0;
+        localPositionValid = false;
+
         stopCapture();
 
         WebSocket socket = voiceSocket;
@@ -656,11 +694,6 @@ public final class XzielVoiceChat {
         remoteTracks.clear();
         connectedPlayers.clear();
         playerMuted.clear();
-
-        roomCode = "";
-        playerId = "";
-        localSlot = 0;
-        localPositionValid = false;
 
         hidePausePanel();
         hideHudControls();
