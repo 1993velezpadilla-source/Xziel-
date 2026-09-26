@@ -70,7 +70,8 @@ jobs:
             scripts/patch_vril_multiplayer_online.py \
             scripts/build_xziel_icons.py \
             scripts/patch_vril_sanctum_staticmesh.py \
-            scripts/patch_quakec_mobile_v024.py
+            scripts/patch_quakec_mobile_v024.py \
+            scripts/patch_quakec_multiplayer_v026.py
 
 
       - name: Audit full Vril and QuakeC patch chain
@@ -104,6 +105,7 @@ jobs:
           python3 scripts/patch_quakec_mobile_v021.py "$AUDIT/quakec"
           python3 scripts/patch_quakec_mobile_v022.py "$AUDIT/quakec"
           python3 scripts/patch_quakec_mobile_v024.py "$AUDIT/quakec"
+          python3 scripts/patch_quakec_multiplayer_v026.py "$AUDIT/quakec"
 
           echo "Full upstream patch chain applied successfully."
 
