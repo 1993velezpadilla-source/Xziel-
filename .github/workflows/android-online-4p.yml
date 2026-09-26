@@ -211,14 +211,10 @@ jobs:
               FIRE_SHOT=1
             fi
 
-            REMOTE_SEEN="$(grep "XzielOnline.*CI_REMOTE_SEEN" "$LOG" | \
-              sed -n 's/.* remote=\([1-4]\).*/\1/p' | sort -u | wc -l | tr -d ' ')"
-            REMOTE_FRAMES="$(grep "XzielOnline.*CI_REMOTE_FRAME" "$LOG" | \
-              sed -n 's/.* remote=\([1-4]\).*/\1/p' | sort -u | wc -l | tr -d ' ')"
-            VOICE_SENDERS="$(grep "XzielVoice.*CI_VOICE_PLAY" "$LOG" | \
-              sed -n 's/.* sender=\([1-4]\).*/\1/p' | sort -u | wc -l | tr -d ' ')"
-            LOCAL_SLOT="$(grep "XzielOnline.*WELCOME" "$LOG" | \
-              sed -n 's/.* slot=\([1-4]\).*/\1/p' | tail -n 1)"
+            REMOTE_SEEN="$(awk '/XzielOnline.*CI_REMOTE_SEEN/ { if (match($0, / remote=[1-4]/)) print substr($0, RSTART + 8, 1) }' "$LOG" | sort -u | wc -l | tr -d ' ')"
+            REMOTE_FRAMES="$(awk '/XzielOnline.*CI_REMOTE_FRAME/ { if (match($0, / remote=[1-4]/)) print substr($0, RSTART + 8, 1) }' "$LOG" | sort -u | wc -l | tr -d ' ')"
+            VOICE_SENDERS="$(awk '/XzielVoice.*CI_VOICE_PLAY/ { if (match($0, / sender=[1-4]/)) print substr($0, RSTART + 8, 1) }' "$LOG" | sort -u | wc -l | tr -d ' ')"
+            LOCAL_SLOT="$(awk '/XzielOnline.*WELCOME/ { if (match($0, / slot=[1-4]/)) slot=substr($0, RSTART + 6, 1) } END { if (slot != "") print slot }' "$LOG")"
 
             SOUND_OK=1
             if [[ -n "$LOCAL_SLOT" && "$LOCAL_SLOT" != "4" ]]; then
