@@ -148,6 +148,7 @@ jobs:
             -n com.xziel.nzp/org.libsdl.app.NZPActivity \
             --ez xziel_ci_public_match true \
             --es xziel_ci_match_queue "$QUEUE" \
+            --es xziel_ci_player_id "ci-${GITHUB_RUN_ID}-p${{ matrix.runner }}" \
             > "evidence/am-start-${{ matrix.runner }}.txt" 2>&1
 
           # The first queue arrival becomes slot 1/host. Host success requires
