@@ -7,10 +7,12 @@
   "observability": { "enabled": true },
   "durable_objects": {
     "bindings": [
-      { "name": "GAME_ROOMS", "class_name": "GameRoom" }
+      { "name": "GAME_ROOMS", "class_name": "GameRoom" },
+      { "name": "MATCHMAKER", "class_name": "Matchmaker" }
     ]
   },
   "migrations": [
-    { "tag": "v1", "new_sqlite_classes": ["GameRoom"] }
+    { "tag": "v1", "new_sqlite_classes": ["GameRoom"] },
+    { "tag": "v2", "new_sqlite_classes": ["Matchmaker"] }
   ]
 }
